@@ -1,0 +1,41 @@
+# Dedicated task to prepare ISCSI target with client structure
+
+# Required input format
+# iscsi_backstore: "ENTER_STRING_VALUE_HERE"
+# iscsi_iqn: "ENTER_STRING_VALUE_HERE"
+# iscsi_host: "ENTER_STRING_VALUE_HERE"
+# iscsi_target:
+#   name: "{{ iscsi_iqn }}:'ENTER_STRING_VALUE_HERE'"
+#   clients:
+#     - "{{ iscsi_iqn }}:'ENTER_STRING_VALUE_HERE'"
+#     - "{{ iscsi_iqn }}:'ENTER_STRING_VALUE_HERE'"
+
+- name: Ensure that targetcli-fb is installed
+  ansible.builtin.package:
+    name: targetcli-fb
+    state: present
+
+- name: Create target
+  ansible.builtin.command:
+    cmd: "targetcli /iscsi create {{ iscsi_target.name }}"
+  changed_when: true
+  failed_when: false
+
+- name: Create lun
+  ansible.builtin.command:
+    cmd: "targetcli /iscsi/{{ iscsi_target.name }}/tpg1/luns create /backstores/block/{{ iscsi_backstore }}"
+  changed_when: true
+  failed_when: false
+
+- name: Create acl
+  ansible.builtin.command:
+    cmd: "targetcli /iscsi/{{ iscsi_target.name }}/tpg1/acls create {{ item }}"
+  loop: "{{ iscsi_target.clients }}"
+  changed_when: true
+  failed_when: false
+
+- name: Save target configuration
+  ansible.builtin.command:
+    cmd: "targetcli saveconfig"
+  changed_when: true
+  failed_when: false

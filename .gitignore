@@ -1,0 +1,9 @@
+# Ignore all override files
+*.local.*
+
+# Ignore VSCode
+.vscode
+
+# Ignore local debugging files
+*_rhel.yml
+debug.yml

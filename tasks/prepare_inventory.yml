@@ -1,0 +1,94 @@
+# Dedicated task to prepare inventory based on provided host_specifications_dictionary
+
+# NOTE: This task replicates creation by sap_infrastructure and it should not be executed together.
+
+- name: Block for dynamic inventory creation
+  when: not sap_vm_provision_calculate_sap_hana_scaleout_active_coordinator is defined
+  vars:
+    host_dict: "{{ 'sap_vm_provision_' ~ sap_vm_provision_iac_platform ~ '_host_specifications_dictionary' }}"
+  block:
+    - name: Create dynamic inventory group sap_vm_provision_target_inventory_group
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        group: sap_vm_provision_target_inventory_group
+      loop: "{{ lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys() }}"
+      when: sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
+
+    - name: Create dynamic inventory groups per sap_host_type  # noqa: jinja[spacing]
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        group: "{{ vars['sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary']
+          [sap_vm_provision_host_specification_plan][item].sap_host_type }}"
+        ansible_host: "{{ item }}.{{ sap_vm_provision_dns_root_domain }}"
+        # ansible_user: "{{ 'azureadmin' if sap_vm_provision_iac_platform == 'msazure_vm' else 'root' }}"
+        ansible_user: "root"
+        ansible_ssh_private_key_file: "{{ sap_vm_provision_ssh_host_private_key_file_path }}"
+        ansible_ssh_common_args: " -o ConnectTimeout=180 -o ControlMaster=auto
+          -o ControlPersist=3600s -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ForwardX11=no
+          -o ProxyCommand='ssh -W %h:%p {{ sap_vm_provision_bastion_user }}@{{ sap_vm_provision_bastion_public_ip }}
+          -p {{ sap_vm_provision_bastion_ssh_port }} -i {{ sap_vm_provision_ssh_bastion_private_key_file_path }}
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+      loop:
+        "{{ lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys() }}"
+
+
+- name: Block for dynamic inventory creation - SAP HANA Scale-Out
+  when: sap_vm_provision_calculate_sap_hana_scaleout_active_coordinator is defined
+  vars:
+    host_dict: "{{ 'sap_vm_provision_' ~ sap_vm_provision_iac_platform ~ '_host_specifications_dictionary' }}"
+  block:
+    - name: Dynamically create new Ansible Dictionary
+      ansible.builtin.set_fact:
+        scaleout_dict: "{{ {} | combine({sap_vm_provision_host_specification_plan: {}}) }}"
+
+    - name: Dynamically build new Ansible Dictionary - scaleout_build  # noqa: jinja[spacing]
+      ansible.builtin.set_fact:
+        "scaleout_build":
+          "{{ scaleout_build | default({}) | combine({(lookup(host_dict)
+          [sap_vm_provision_host_specification_plan].keys() | first + host_scaleout_node | string):
+           lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan]
+           [lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys() | first]}) }}"
+      loop: "{{ range(0, (sap_vm_provision_calculate_sap_hana_scaleout_active_coordinator | int
+       + sap_vm_provision_calculate_sap_hana_scaleout_active_worker | int
+       + sap_vm_provision_calculate_sap_hana_scaleout_standby | int), 1) | list }}"
+      loop_control:
+        loop_var: host_scaleout_node
+
+    - name: SAP NetWeaver hosts dynamically build new Ansible Dictionary
+      ansible.builtin.set_fact:
+        "other_host_spec_hosts":
+          "{{ lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan] |
+           combine({lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys() | first: omit}) }}"
+
+    - name: Input construct - VM provisioning via Ansible - SAP HANA Scale-Out - Merge dynamically built new Ansible Dictionary keys
+      ansible.builtin.set_fact:
+        all_host_specs: "{{ {} | combine(scaleout_build, other_host_spec_hosts) }}"
+
+    - name: Input construct - VM provisioning via Ansible - SAP HANA Scale-Out - populate new Ansible Dictionary
+      ansible.builtin.set_fact:
+        scaleout_dict: "{{ lookup('ansible.builtin.vars', scaleout_dict) | combine({sap_vm_provision_host_specification_plan: all_host_specs}) }}"
+
+    - name: Create dynamic inventory group for Ansible Role sap_vm_provision  # noqa jinja[spacing]
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        group: sap_vm_provision_target_inventory_group
+      loop:
+        "{{ lookup('ansible.builtin.vars', scaleout_dict)[sap_vm_provision_host_specification_plan].keys() |
+         default(lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys()) }}"
+      when:
+        - sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
+
+    - name: Create dynamic inventory group for Ansible Role sap_vm_provision - Final
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        group: 'hana_primary'
+        ansible_host: "{{ item }}.{{ sap_vm_provision_dns_root_domain }}"
+        # ansible_user: "{{ 'azureadmin' if sap_vm_provision_iac_platform == 'msazure_vm' else 'root' }}"
+        ansible_user: "root"
+        ansible_ssh_private_key_file: "{{ sap_vm_provision_ssh_host_private_key_file_path }}"
+        ansible_ssh_common_args: " -o ConnectTimeout=180 -o ControlMaster=auto
+          -o ControlPersist=3600s -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ForwardX11=no
+          -o ProxyCommand='ssh -W %h:%p {{ sap_vm_provision_bastion_user }}@{{ sap_vm_provision_bastion_public_ip }}
+          -p {{ sap_vm_provision_bastion_ssh_port }} -i {{ sap_vm_provision_ssh_bastion_private_key_file_path }}
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
+      loop: "{{ groups['sap_vm_provision_target_inventory_group'] }}"

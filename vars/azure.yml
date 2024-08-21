@@ -1,0 +1,95 @@
+---
+# Platform-wide specific variables used by all scenarios
+
+# SAP ONE Support Launchpad credentials
+sap_id_user: "ENTER_STRING_VALUE_HERE"  # SAP S-User ID
+sap_id_user_password: "ENTER_STRING_VALUE_HERE"  # SAP S-User password
+
+# DNS service details
+sap_vm_provision_dns_root_domain: "ENTER_STRING_VALUE_HERE"  # Name of private DNS domain
+
+# BYOS image subscription - Use only with BYOS images
+sap_vm_provision_os_online_registration_user: "ENTER_STRING_VALUE_HERE"  # OS registration email
+sap_vm_provision_os_online_registration_passcode: "ENTER_STRING_VALUE_HERE"  # OS registration key
+
+# Service credentials for CLI
+sap_vm_provision_msazure_app_client_id: "ENTER_STRING_VALUE_HERE"  # AZ CLI service user client id
+sap_vm_provision_msazure_app_client_secret: "ENTER_STRING_VALUE_HERE"  # AZ CLI service user client secret
+
+# Infrastructure details
+sap_vm_provision_iac_platform: "msazure_vm"  # Do not change
+sap_vm_provision_msazure_subscription_id: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_msazure_tenant_id: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_msazure_resource_group_name: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_msazure_location_region: "ENTER_STRING_VALUE_HERE"  # Region example: westeurope
+sap_vm_provision_msazure_location_availability_zone_no: "ENTER_INT_VALUE_HERE"  # AZ example: 1
+sap_vm_provision_msazure_vnet_name: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_msazure_vnet_subnet_name: "ENTER_STRING_VALUE_HERE"
+
+# Bastion details
+sap_vm_provision_bastion_user: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_bastion_ssh_port: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_bastion_public_ip: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_ssh_bastion_private_key_file_path: "ENTER_STRING_VALUE_HERE"  # SSH key path on execution server
+sap_vm_provision_ssh_host_private_key_file_path: "ENTER_STRING_VALUE_HERE"  # SSH key path on execution server
+sap_vm_provision_msazure_key_pair_name_ssh_host_public_key: "ENTER_STRING_VALUE_HERE"
+
+# Image dictionary
+sap_vm_provision_msazure_vm_host_os_image_dictionary:
+  sles-15-sp3-sap:
+    publisher: "SUSE"
+    offer: "sles-sap-15-sp3"
+    sku: "gen2"
+  sles-15-sp4-sap:
+    publisher: "SUSE"
+    offer: "sles-sap-15-sp4"
+    sku: "gen2"
+  sles-15-sp5-sap:
+    publisher: "SUSE"
+    offer: "sles-sap-15-sp5"
+    sku: "gen2"
+  sles-15-sp6-sap:
+    publisher: "SUSE"
+    offer: "sles-sap-15-sp6"
+    sku: "gen2"
+  sles-15-sp5-sap-byos:
+    publisher: "SUSE"
+    offer: "sles-sap-15-sp5-byos"
+    sku: "gen2"
+  sles-15-sp6-sap-byos:
+    publisher: "SUSE"
+    offer: "sles-sap-15-sp6-byos"
+    sku: "gen2"
+
+  rhel-8-6-sap-ha:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-HA"
+    sku: "86sapha-gen2"
+  rhel-8-8-sap-ha:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-HA"
+    sku: "88sapha-gen2"
+  rhel-9-0-sap-ha:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-HA"
+    sku: "90sapha-gen2"
+  rhel-9-2-sap-ha:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-HA"
+    sku: "92sapha-gen2"
+  rhel-8-6-sap-applications:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-applications"
+    sku: "86sapapps-gen2"
+  rhel-8-8-sap-applications:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-applications"
+    sku: "88sapapps-gen2"
+  rhel-9-0-sap-applications:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-applications"
+    sku: "90sapapps-gen2"
+  rhel-9-2-sap-applications:
+    publisher: "RedHat"
+    offer: "RHEL-SAP-applications"
+    sku: "92sapapps-gen2"

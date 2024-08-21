@@ -1,0 +1,95 @@
+# Dedicated task to register ISCSI clients with target
+
+# Required input format
+# iscsi_backstore: "ENTER_STRING_VALUE_HERE"
+# iscsi_iqn: "ENTER_STRING_VALUE_HERE"
+# iscsi_host: "ENTER_STRING_VALUE_HERE"
+# iscsi_target:
+#   name: "{{ iscsi_iqn }}:'ENTER_STRING_VALUE_HERE'"
+#   clients:
+#     - "{{ iscsi_iqn }}:'ENTER_STRING_VALUE_HERE'"
+#     - "{{ iscsi_iqn }}:'ENTER_STRING_VALUE_HERE'"
+
+
+- name: Ensure that open-iscsi is installed - SLES
+  ansible.builtin.package:
+    name: open-iscsi
+    state: present
+  when: ansible_os_family == 'Suse'
+
+- name: Ensure that open-iscsi is installed - RHEL
+  ansible.builtin.package:
+    name:
+      - iscsi-initiator-utils
+    state: present
+  when: ansible_os_family | lower == 'redhat'
+
+- name: Discover ISCSI targets
+  ansible.builtin.command:
+    cmd: "iscsiadm --mode discovery --type sendtargets --portal {{ iscsi_host }}"
+  register: iscsi_discovery
+  changed_when: "'portal' in iscsi_discovery.stdout"
+
+- name: Update /etc/iscsi/initiatorname.iscsi
+  ansible.builtin.lineinfile:
+    path: /etc/iscsi/initiatorname.iscsi
+    regexp: "InitiatorName="
+    line: "InitiatorName={{ iscsi_iqn }}:{{ ansible_hostname }}"
+
+- name: Update /etc/iscsi/iscsid.conf - Enable automatic startup
+  ansible.builtin.lineinfile:
+    path: /etc/iscsi/iscsid.conf
+    regexp: "node.startup = manual"
+    line: "node.startup = automatic"
+
+- name: Update /etc/iscsi/iscsid.conf - Enable automatic startup node
+  ansible.builtin.lineinfile:
+    path: /etc/iscsi/nodes/{{ iscsi_target.name }}/{{ iscsi_host }},3260,1/default
+    regexp: "node.startup = manual"
+    line: "node.startup = automatic"
+  when: ansible_os_family == 'Suse'
+
+- name: Enable and start iscsid service
+  ansible.builtin.systemd:
+    name: iscsid
+    enabled: true
+    state: restarted
+
+- name: Log into ISCSI target
+  ansible.builtin.command:
+    cmd: "iscsiadm --mode node --targetname {{ iscsi_target.name }} --portal {{ iscsi_host }} --login"
+  register: iscsi_login
+  changed_when: "'successful' in iscsi_login.stdout"
+  failed_when: false
+
+- name: Enable and start iscsid service
+  ansible.builtin.systemd:
+    name: iscsid
+    enabled: true
+    state: started
+
+- name: Get scsi disk device from /dev/disk/by-id/
+  ansible.builtin.find:
+    paths: "/dev/disk/by-id"
+    recurse: false
+    file_type: link
+    patterns: 'scsi-3600*'
+  register: scsi_disk_id
+
+- name: Create disk array for ha_cluster
+  ansible.builtin.set_fact:
+    scsi_disk_array:
+      - "{{ scsi_disk_id.files[0].path }}"
+
+- name: Update SBD_DEVICE in /etc/sysconfig/sbd
+  ansible.builtin.lineinfile:
+    path: /etc/sysconfig/sbd
+    regexp: '^SBD_DEVICE="'
+    line: 'SBD_DEVICE="{{ scsi_disk_id.files[0].path }}"'
+
+- name: Reset status of SBD
+  ansible.builtin.command:
+    cmd: "sbd -d {{ scsi_disk_id.files[0].path }} message {{ ansible_hostname }} clear"
+  async: 300
+  poll: 0
+  changed_when: true

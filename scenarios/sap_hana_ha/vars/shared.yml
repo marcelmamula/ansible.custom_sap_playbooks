@@ -1,0 +1,63 @@
+---
+# Platform-wide specific variables used by current scenario
+
+# SAP System  - Details
+sap_system_hana_db_sid: "ENTER_STRING_VALUE_HERE"
+sap_system_hana_db_instance_nr: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_host: "ENTER_STRING_VALUE_HERE"
+
+# SAP System - dynamic assignment of variables
+sap_hostname: "{{ ansible_hostname }}"
+sap_domain: "{{ ansible_domain }}"
+sap_ip: "{{ ansible_default_ipv4.address }}"
+
+# Provisioning variables for sap_infrastructure
+sap_vm_provision_iac_type: "ansible"
+sap_vm_provision_ha_load_balancer_name_hana: "{{ sap_system_hana_db_sid | lower }}-lb-sap-ha-hana"
+
+# NFS filesystem details where SAP Software is located
+# This scenario is using NFS as source instead of SAP software download using sap_launchpad
+sap_software_directory: /software  # Specify target for unpacked software
+sap_software_nfs_db:
+  mount: /software_db  # Specify mount for NFS filesystem
+  source: "{{ sap_software_nfs_sources.db }}"  # NFS source defined in platform vars
+  type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+#  options: "{{ sap_software_nfs_sources.options |
+#   d('nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev') }}"  # NFS mount options
+
+# Configuration for preconfigure roles (general, hana, netweaver)
+sap_general_preconfigure_modify_etc_hosts: false
+sap_general_preconfigure_reboot_ok: true
+sap_general_preconfigure_fail_if_reboot_required: false
+sap_hana_preconfigure_reboot_ok: true
+sap_hana_preconfigure_fail_if_reboot_required: false
+sap_hana_preconfigure_update: true
+sap_hana_update_etchosts: true
+
+# SAP HANA Install variables
+sap_hana_product_input: "sap_hana_2_sps07_install"
+sap_hana_install_update_etchosts: false
+sap_hana_sid: "{{ sap_system_hana_db_sid }}"
+sap_hana_install_instance_nr: "{{ sap_system_hana_db_instance_nr }}"
+sap_hana_install_use_master_password: "y"
+sap_hana_install_master_password: "ENTER_STRING_VALUE_HERE"
+
+# SAP HANA System Replication (HSR) installation
+sap_ha_install_hana_hsr_sid: "{{ sap_system_hana_db_sid }}"
+sap_ha_install_hana_hsr_instance_number: "{{ sap_system_hana_db_instance_nr }}"
+sap_ha_install_hana_hsr_db_system_password: "{{ sap_hana_install_master_password }}"
+
+
+# Software regex for sap_install_media_detect role
+sap_hana_install_media_dictionary_regex:
+  sap_hana_2_install:
+    software_files_wildcard_list:
+      - 'SAPCAR*'
+      - 'IMDB_*'
+      - 'SAPHOSTAGENT*'
+
+# DEBUG: Flag for sap_ha_pacemaker_cluster troubleshooting
+# __sap_ha_pacemaker_cluster_no_log: false
+
+# DEBUG: Flag for sap_vm_provision troubleshooting
+# __sap_vm_provision_no_log: false

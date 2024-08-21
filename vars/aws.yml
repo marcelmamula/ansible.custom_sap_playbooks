@@ -1,0 +1,70 @@
+---
+# Platform-wide specific variables used by all scenarios
+
+# SAP ONE Support Launchpad credentials
+sap_id_user: "ENTER_STRING_VALUE_HERE"  # SAP S-User ID
+sap_id_user_password: "ENTER_STRING_VALUE_HERE"  # SAP S-User password
+
+# DNS service details
+sap_vm_provision_dns_root_domain: "ENTER_STRING_VALUE_HERE"  # Name of private DNS domain
+sap_vm_provision_aws_dns_overwrite: true  # AWS specific variable to overwrite existing DNS
+
+# BYOS image subscription - Use only with BYOS images
+sap_vm_provision_os_online_registration_user: "ENTER_STRING_VALUE_HERE"  # OS registration email
+sap_vm_provision_os_online_registration_passcode: "ENTER_STRING_VALUE_HERE"  # OS registration key
+
+# Service credentials for CLI
+sap_vm_provision_aws_access_key: "ENTER_STRING_VALUE_HERE"  # AWS CLI user/key
+sap_vm_provision_aws_secret_access_key: "ENTER_STRING_VALUE_HERE"  # AWS CLI secret
+
+# Infrastructure details
+sap_vm_provision_iac_platform: "aws_ec2_vs"  # Do not change
+sap_vm_provision_aws_region: "{{ sap_vm_provision_aws_vpc_availability_zone[:-1] }}"  # Region example: eu-central-1
+sap_vm_provision_aws_vpc_availability_zone: "ENTER_STRING_VALUE_HERE"  # AZ example: eu-central-1a
+sap_vm_provision_aws_vpc_subnet_create_boolean: false  # Disables VPC subnet creation
+sap_vm_provision_aws_vpc_subnet_id: "ENTER_STRING_VALUE_HERE"  # AWS VPC subnet id starts with: subnet-
+sap_vm_provision_aws_vpc_sg_names: "ENTER_STRING_VALUE_HERE"  # AWS VPC service group starts with: sg-
+sap_ha_pacemaker_cluster_aws_vip_update_rt: "ENTER_STRING_VALUE_HERE"  # AWS route table starts with: rt-
+
+# Bastion details
+sap_vm_provision_bastion_user: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_bastion_ssh_port: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_bastion_public_ip: "ENTER_STRING_VALUE_HERE"
+sap_vm_provision_ssh_bastion_private_key_file_path: "ENTER_STRING_VALUE_HERE"  # SSH key path on execution server
+sap_vm_provision_ssh_host_private_key_file_path: "ENTER_STRING_VALUE_HERE"  # SSH key path on execution server
+sap_vm_provision_aws_key_pair_name_ssh_host_public_key: "ENTER_STRING_VALUE_HERE"
+
+# Image dictionary
+sap_vm_provision_aws_ec2_vs_host_os_image_dictionary:
+  sles-15-2: "*suse-sles-15-sp2-v202*-hvm-ssd-x86_64*"
+  sles-15-3: "*suse-sles-15-sp3-v202*-hvm-ssd-x86_64*"
+  sles-15-4: "*suse-sles-15-sp4-v202*-hvm-ssd-x86_64*"
+  sles-15-5: "*suse-sles-15-sp5-v202*-hvm-ssd-x86_64*"
+  sles4sap-12-5: "*suse-sles-sap-12-sp5-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-1: "*suse-sles-sap-15-sp1-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-2: "*suse-sles-sap-15-sp2-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-3: "*suse-sles-sap-15-sp3-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-4: "*suse-sles-sap-15-sp4-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-5: "*suse-sles-sap-15-sp5-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-6: "*suse-sles-sap-15-sp6-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-3-byos: "*suse-sles-sap-15-sp3-byos-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-4-byos: "*suse-sles-sap-15-sp4-byos-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-5-byos: "*suse-sles-sap-15-sp5-byos-v202*-hvm-ssd-x86_64*"
+  sles4sap-15-6-byos: "*suse-sles-sap-15-sp6-byos-v202*-hvm-ssd-x86_64*"
+
+  rhel-8-1: "*RHEL-8.1*_HVM*x86_64*"
+  rhel-8-2: "*RHEL-8.2*_HVM*x86_64*"
+  rhel-8-4: "*RHEL-8.4*_HVM*x86_64*"
+  rhel-8-6: "*RHEL-8.6*_HVM*x86_64*"
+  rhel-8-8: "*RHEL-8.8*_HVM*x86_64*"
+  rhel-8-1-sap-ha: "*RHEL-SAP-8.1.0*"
+  rhel-8-2-sap-ha: "*RHEL-SAP-8.2.0*"
+  rhel-8-4-sap-ha: "*RHEL-SAP-8.4.0*"
+  rhel-8-6-sap-ha: "*RHEL-SAP-8.6.0*"
+  rhel-8-8-sap-ha: "*RHEL-SAP-8.8.0*"
+  rhel-9-0-sap-ha: "*RHEL-SAP-9.0.0*"
+  rhel-9-2-sap-ha: "*RHEL-SAP-9.2.0*"
+
+# Resource tag dictionary - enable to tag your resources
+# resource_tag_platform_dict:
+#   tag: value
