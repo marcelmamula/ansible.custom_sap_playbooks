@@ -1,0 +1,126 @@
+---
+# Platform and Scenario specific variables
+
+# Image from Image dictionary
+sap_vm_provision_msazure_vm_host_os_image: "sles-15-sp5-sap-byos"
+
+# NFS Software source
+sap_software_nfs_sources:
+  app: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.file.core.windows.net:/nfs/software/sap_hana_ha"
+
+# NFS mounts for SAP NWAS filesystems
+sap_vm_provision_nfs_mount_point: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.file.core.windows.net:/nfs/"
+sap_vm_provision_nfs_mount_point_separate_sap_transport_dir: "{{ sap_vm_provision_nfs_mount_point }}"
+sap_vm_provision_nfs_mount_point_type: nfs4
+sap_vm_provision_nfs_mount_point_opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,acl
+
+# HA Cluster Virtual IP - must be within the VNet Subnet CIDR Range attached to the Load Balancer
+sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.200/32"
+sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.201/32"
+
+# Variables for sap_ha_pacemaker_cluster
+sap_ha_pacemaker_cluster_msazure_subscription_id: "{{ sap_vm_provision_msazure_subscription_id }}"
+sap_ha_pacemaker_cluster_msazure_resource_group: "{{ sap_vm_provision_msazure_resource_group_name }}"
+sap_vm_provision_ha_vip_nwas_abap_ascs: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address }}"
+sap_vm_provision_ha_vip_nwas_abap_ers: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address }}"
+sap_ha_pacemaker_cluster_vip_client_interface: "eth0"
+
+
+# Select host dictionary plan from host_specifications_dictionary
+sap_vm_provision_host_specification_plan: "sandbox"
+
+# sap_vm_provision - host specification dictionary
+sap_vm_provision_msazure_vm_host_specifications_dictionary:
+  sandbox:
+    ae1ascs: # Hostname, must be 13 characters or less
+      sap_host_type: nwas_ascs
+      virtual_machine_profile: "Standard_D4s_v5"  # Standard_D4s_v5: 4CPU 16GB RAM
+      disable_ip_anti_spoofing: true
+
+      sap_storage_setup_sid: "{{ sap_system_sid }}"
+      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+
+      # Both ASCS and ERS NFS have to be present if Simple Mount is used
+      sap_storage_setup_host_type:
+        - nwas_abap_ascs
+        - nwas_abap_ers
+
+      storage_definition:
+        - name: usr_sap
+          mountpoint: /usr/sap
+          nfs_path: /usr/sap
+          nfs_server: "{{ sap_vm_provision_nfs_mount_point | default('') }}"
+          nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
+          nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
+
+        - name: usr_sap_trans
+          mountpoint: /usr/sap/trans
+          nfs_path: /usr/sap/trans
+          nfs_server: "{{ sap_vm_provision_nfs_mount_point_separate_sap_transport_dir | default('') }}"
+          nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
+          nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
+
+        - name: sapmnt
+          mountpoint: /sapmnt
+          nfs_path: /sapmnt
+          nfs_server: "{{ sap_vm_provision_nfs_mount_point | default('') }}"
+          nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
+          nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
+
+        # SWAP is not required for small sandbox system
+        # - name: swap
+        #   disk_size: 96
+        #   filesystem_type: swap
+
+        # Software is not required because installation is done directly from Software NFS
+        # - name: software
+        #   mountpoint: /software
+        #   disk_size: 20
+        #   filesystem_type: xfs
+
+
+    ae1ers: # Hostname, must be 13 characters or less
+      sap_host_type: nwas_ers
+      virtual_machine_profile: "Standard_D4s_v5"  # Standard_D4s_v5: 4CPU 16GB RAM
+      disable_ip_anti_spoofing: true
+
+      sap_storage_setup_sid: "{{ sap_system_sid }}"
+      sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+
+      # Both ASCS and ERS NFS have to be present if Simple Mount is used
+      sap_storage_setup_host_type:
+        - nwas_abap_ers
+        - nwas_abap_ascs
+
+      storage_definition:
+        - name: usr_sap
+          mountpoint: /usr/sap
+          nfs_path: /usr/sap
+          nfs_server: "{{ sap_vm_provision_nfs_mount_point | default('') }}"
+          nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
+          nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
+
+        - name: usr_sap_trans
+          mountpoint: /usr/sap/trans
+          nfs_path: /usr/sap/trans
+          nfs_server: "{{ sap_vm_provision_nfs_mount_point_separate_sap_transport_dir | default('') }}"
+          nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
+          nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
+
+        - name: sapmnt
+          mountpoint: /sapmnt
+          nfs_path: /sapmnt
+          nfs_server: "{{ sap_vm_provision_nfs_mount_point | default('') }}"
+          nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
+          nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
+
+        # SWAP is not required for small sandbox system
+        # - name: swap
+        #   disk_size: 96
+        #   filesystem_type: swap
+
+        # Software is not required because installation is done directly from Software NFS
+        # - name: software
+        #   mountpoint: /software
+        #   disk_size: 20
+        #   filesystem_type: xfs

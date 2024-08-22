@@ -1,0 +1,134 @@
+---
+# Platform-wide specific variables used by current scenario
+
+# SAP System  - Details
+sap_system_sid: "ENTER_STRING_VALUE_HERE"  # Example: AE1
+sap_system_nwas_abap_ascs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
+sap_system_nwas_abap_ers_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "10"
+
+# SAP System - dynamic assignment of variables
+sap_hostname: "{{ ansible_hostname }}"
+sap_domain: "{{ ansible_domain }}"
+sap_ip: "{{ ansible_default_ipv4.address }}"
+
+# Provisioning variables for sap_infrastructure
+sap_vm_provision_iac_type: "ansible"
+sap_vm_provision_ha_load_balancer_name_nwas: "{{ sap_system_sid | lower }}-lb-sap-ha-nwas"
+
+# NFS filesystem details where SAP Software is located
+# This scenario is using NFS as source instead of SAP software download using sap_launchpad
+sap_software_directory: /software  # Specify target for unpacked software
+sap_software_nfs_app:
+  mount: /software_app  # Specify mount for NFS filesystem
+  source: "{{ sap_software_nfs_sources.app }}"  # NFS source defined in platform vars
+  type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+  # options: "{{ sap_software_nfs_sources.options |
+  #  d('nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev') }}"  # NFS mount options
+
+# Configuration for preconfigure roles (general, hana, netweaver)
+sap_general_preconfigure_modify_etc_hosts: false
+sap_general_preconfigure_reboot_ok: true
+sap_general_preconfigure_fail_if_reboot_required: false
+# Disables SWAP size check for development system
+sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured: false
+
+
+# SWPM - main variables
+sap_swpm_templates_product_input_prefix: "sap_nwas_abap_distributed"
+sap_swpm_ansible_role_mode: default_templates
+sap_swpm_fqdn: "{{ ansible_domain }}"
+sap_swpm_update_etchosts: 'false'
+
+# SWPM - dynamic variables
+sap_swpm_ascs_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ascs[0] | default(none) }}ha"
+sap_swpm_ers_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ers[0] | default(none) }}ha"
+sap_swpm_sid: "{{ sap_system_sid }}"
+sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+sap_swpm_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+
+# SWPM - master password variables
+# Override any variable set in sap_swpm_inifile_dictionary
+sap_swpm_master_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_ddic_000_password: "ENTER_STRING_VALUE_HERE"
+
+# SWPM - database password variables
+sap_swpm_db_schema_abap: "ENTER_STRING_VALUE_HERE"  # Example: "SAPHANADB"
+sap_swpm_db_schema_abap_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_sidadm_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_system_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_systemdb_password: "ENTER_STRING_VALUE_HERE"
+
+# SWPM - user id variables
+sap_swpm_sapadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3000"
+sap_swpm_sapsys_gid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
+sap_swpm_sidadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
+
+
+# Dictionary with SWPM details for each host
+sap_swpm_templates_install_dictionary:
+  sap_nwas_abap_distributed_nwas_ascs_ha:
+
+    # Product ID for New Installation
+    sap_swpm_product_catalog_id: NW_ABAP_ASCS:NW750.HDB.ABAPHA
+
+    sap_swpm_inifile_list:
+      - swpm_installation_media
+      - swpm_installation_media_swpm1
+      - credentials
+      - credentials_hana
+      - db_config_hana
+      - db_connection_nw_hana
+      - nw_config_other
+      - nw_config_central_services_abap
+      - nw_config_primary_application_server_instance
+      - nw_config_ports
+      - nw_config_host_agent
+      - sap_os_linux_user
+
+    sap_swpm_inifile_dictionary:
+      sap_swpm_install_saphostagent: 'true'
+
+    software_files_wildcard_list:
+      - 'SAPCAR*'
+      - 'SWPM10*'
+      - 'igsexe_*'
+      - 'igshelper_*'
+      - 'SAPEXE_*'
+      - 'SAPEXEDB_*'
+      - 'SUM*'
+      - 'SAPHOSTAGENT*'
+
+
+  sap_nwas_abap_distributed_nwas_ers_ha:
+
+    # Product ID for New Installation
+    sap_swpm_product_catalog_id: NW_ERS:NW750.HDB.ABAPHA
+
+    sap_swpm_inifile_list:
+      - swpm_installation_media
+      - credentials
+      - nw_config_other
+      - nw_config_ers
+      - sap_os_linux_user
+
+    sap_swpm_inifile_dictionary:
+      sap_swpm_install_saphostagent: 'true'
+
+    software_files_wildcard_list:
+      - 'SAPCAR*'
+      - 'SWPM10*'
+      - 'igsexe_*'
+      - 'igshelper_*'
+      - 'SAPEXE_*' # Kernel Part I (754)
+      - 'SAPEXEDB_*' # Kernel Part I (754)
+      - 'SUM*'
+      - 'SAPHOSTAGENT*'
+
+# DEBUG: Flag to disable SAPHanaSR-angi detection and use Classic
+# sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: false
+
+# DEBUG: Flag for sap_ha_pacemaker_cluster troubleshooting
+# __sap_ha_pacemaker_cluster_no_log: false
+
+# DEBUG: Flag for sap_vm_provision troubleshooting
+# __sap_vm_provision_no_log: false

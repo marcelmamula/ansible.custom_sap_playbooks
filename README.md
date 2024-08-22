@@ -146,5 +146,13 @@ ansible-playbook ../../tools/terminate.yml -e @../../vars/aws.yml -e @./vars/sha
 2. shared scenario specific variables are loaded second
 3. scenario and platform specific variables are loaded last
 
+## Recommended way to execute with custom variables
+Updating variable files is easy method, but any future pull/fetch of repository will lead to losing them.</br>
+**Following method was used during development and testing to keep all passwords and important information separate from files pushed to repository.**
+
+1. Clone repository
+2. Copy variable file you want to use and added `.local` before file type extension. Example: `cp vars/aws.yml vars/aws.local.yml`
+3. Execute using new variables files. Example: `ansible-playbook build.yml -e @../../vars/aws.local.yml -e @./vars/shared.local.yml -e @./vars/aws.local.yml`
+
 ## Contributors
 [Marcel Mamula](https://github.com/marcelmamula)

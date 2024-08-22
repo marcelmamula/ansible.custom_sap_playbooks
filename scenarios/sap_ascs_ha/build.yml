@@ -1,0 +1,322 @@
+---
+- name: Ansible Play to create dynamic inventory group for provisioning
+  hosts: localhost
+  gather_facts: false
+  vars:
+    host_dict: "{{ 'sap_vm_provision_' ~ sap_vm_provision_iac_platform ~ '_host_specifications_dictionary' }}"
+  tasks:
+    - name: Create dynamic inventory group sap_vm_provision_target_inventory_group
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        group: sap_vm_provision_target_inventory_group
+      loop: "{{ lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys() }}"
+      when: sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
+
+
+- name: Ansible Play to provision hosts for SAP
+  hosts: sap_vm_provision_target_inventory_group
+  gather_facts: false
+  tasks:
+
+    - name: Execute Ansible Role sap_vm_provision
+      ansible.builtin.include_role:
+        name: community.sap_infrastructure.sap_vm_provision
+      when: sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
+
+    - name: Tag provisioned resources
+      ansible.builtin.include_tasks:
+        file: ../../tasks/tag_resources.yml
+
+
+# Google DNS is not refreshing cache quick enough during frequent rebuilds.
+- name: Ansible Play to flush DNS on Google Cloud
+  hosts: localhost
+  gather_facts: true
+  tasks:
+
+    - name: Flush Bastion host DNS service ncsd
+      delegate_to: "{{ sap_vm_provision_bastion_public_ip }}"
+      ansible.builtin.command:
+        cmd: sudo systemctl restart nscd
+      vars:
+        ansible_user: "{{ sap_vm_provision_bastion_user }}"
+        ansible_ssh_private_key_file: "{{ sap_vm_provision_ssh_bastion_private_key_file_path }}"
+        ansible_ssh_common_args: " -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      when:
+        - sap_vm_provision_iac_platform == "gcp_ce_vm"
+        - ansible_os_family == 'Suse'
+      changed_when: true
+
+
+- name: Ansible Play for hosts storage setup
+  hosts: nwas_ascs, nwas_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
+
+    - name: Execute Ansible Role sap_vm_temp_vip
+      ansible.builtin.include_role:
+        name: community.sap_infrastructure.sap_vm_temp_vip
+
+    - name: Execute Ansible Role sap_storage_setup
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_storage_setup
+      vars:  # noqa jinja[spacing]
+        sap_storage_setup_sid: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
+          [inventory_hostname_short].sap_storage_setup_sid | default('') }}"
+        sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+        sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+        sap_storage_setup_host_type: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
+          [inventory_hostname_short].sap_storage_setup_host_type | list }}"
+      when:
+        - sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
+        - not sap_vm_provision_iac_type == "existing_hosts"
+
+
+# THIS IS DESTRUCTIVE PLAY.
+# It is intended only for rebuilds of same system for development purpose.
+- name: Ansible Play for NFS cleanup of shared filesystems for fresh install
+  hosts: nwas_ascs, nwas_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  serial: 1
+  tasks:
+
+    - name: Get list of users in /etc/passwd
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: Cleanup NFS filesystems for fresh install
+      when:
+        - "sap_system_sid | lower + 'adm' not in getent_passwd.keys()"
+      block:
+        - name: Identify NFS mounts excluding nfs software  # noqa risky-shell-pipe
+          ansible.builtin.shell:
+            cmd: "cat /proc/mounts | grep nfs4 | grep -v software |  awk '{print $2}'"
+          register: mounted_nfs_found
+          changed_when: false
+
+        - name: Cleanup mounted nfs shares  # noqa command-instead-of-shell
+          ansible.builtin.shell:
+            cmd: "rm -rf {{ item | regex_replace('$', '/*') }}"
+          loop: "{{ mounted_nfs_found.stdout_lines }}"
+          when:
+            - mounted_nfs_found is defined
+            - mounted_nfs_found | length > 0
+          changed_when: true
+
+
+- name: Ansible Play for preparing NFS mounts with SAP Software
+  hosts: nwas_ascs, nwas_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
+
+    - name: Create software directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ sap_software_nfs_app.mount }}"
+
+    - name: Mount network share
+      ansible.posix.mount:
+        path: "{{ sap_software_nfs_app.mount }}"
+        src: '{{ sap_software_nfs_app.source }}'
+        fstype: "{{ sap_software_nfs_app.type }}"
+        state: mounted
+
+
+- name: Ansible Play for preparing all SAP software hosts
+  hosts: nwas_ascs, nwas_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
+
+    - name: Set fact sidadm for futher use
+      ansible.builtin.set_fact:
+        sidadm: "{{ sap_system_sid | lower + 'adm' }}"
+
+    - name: Get list of users in /etc/passwd
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: Check if SAP profile is present
+      ansible.builtin.stat:
+        path: "/sapmnt/{{ sap_system_sid | upper }}/profile/DEFAULT.PFL"
+      register: sap_profile_stat_check
+
+    - name: Block with preconfigure roles
+      when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
+      block:
+        - name: Execute Ansible Role sap_general_preconfigure
+          ansible.builtin.include_role:
+            name: community.sap_install.sap_general_preconfigure
+
+        - name: Execute Ansible Role sap_netweaver_preconfigure
+          ansible.builtin.include_role:
+            name: community.sap_install.sap_netweaver_preconfigure
+
+        - name: Execute Ansible Role sap_vm_temp_vip
+          ansible.builtin.include_role:
+            name: community.sap_infrastructure.sap_vm_temp_vip
+
+    # Same NFS is used for both source and target
+    - name: Set fact for Software source
+      ansible.builtin.set_fact:
+        sap_install_media_detect_source_directory: "{{ sap_software_nfs_app.mount }}"
+
+
+- name: Ansible Play for SAP NetWeaver Application Server installation - ASCS
+  hosts: nwas_ascs
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_install_media_detect
+      vars:
+        sap_install_media_detect_swpm: true
+        sap_install_media_detect_hostagent: true
+        sap_install_media_detect_igs: true
+        sap_install_media_detect_kernel: true
+        sap_install_media_detect_webdisp: false
+      when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
+
+
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_swpm
+      vars:
+        sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ascs_ha"
+        sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+        sap_swpm_virtual_hostname: "{{ sap_swpm_ascs_instance_hostname }}"
+
+        # Support for SLES 15 SP5 and python311
+        ansible_python_interpreter: /usr/bin/python3
+      when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
+
+
+- name: Ansible Play for SAP NetWeaver Application Server installation - ERS
+  hosts: nwas_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
+
+    - name: Execute Ansible Role sap_install_media_detect
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_install_media_detect
+      vars:
+        sap_install_media_detect_swpm: true
+        sap_install_media_detect_hostagent: true
+        sap_install_media_detect_igs: true
+        sap_install_media_detect_kernel: true
+        sap_install_media_detect_webdisp: false
+      when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
+
+
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_swpm
+      vars:
+        sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ers_ha"
+        sap_swpm_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+        sap_swpm_virtual_hostname: "{{ sap_swpm_ers_instance_hostname }}"
+
+        # Support for SLES 15 SP5 and python311
+        ansible_python_interpreter: /usr/bin/python3
+      when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
+
+
+- name: Ansible Play for SAP NWAS ASCS/ERS cluster setup
+  hosts: nwas_ascs, nwas_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
+
+    # Validating file presence is safer than checking cluster status, as there are many more variables.
+    - name: Check Pacemaker cluster configuration is present
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: cluster_config_file_stat
+      loop:
+        - /etc/corosync/corosync.conf
+        - /var/lib/pacemaker/cib/cib.xml
+
+    - name: Execute Ansible Role sap_ha_pacemaker_cluster
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_ha_pacemaker_cluster
+      when: "false in cluster_config_file_stat.results | map(attribute='stat.exists')"
+      vars:
+        sap_ha_pacemaker_cluster_cluster_name: clusterhdb
+        sap_ha_pacemaker_cluster_hacluster_user_password: 'clusterpass'
+
+        sap_ha_pacemaker_cluster_host_type:
+          - nwas_abap_ascs_ers
+
+        sap_ha_pacemaker_cluster_vip_resource_group_name: vipnwasascs
+
+        sap_ha_pacemaker_cluster_storage_definition: "{{ lookup('vars', 'sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary')
+          [sap_vm_provision_host_specification_plan][ansible_hostname].storage_definition | list }}"
+
+        sap_ha_pacemaker_cluster_storage_nfs_filesytem_type: nfs4
+        sap_ha_pacemaker_cluster_storage_nfs_mount_options: defaults,hard,acl
+        sap_ha_pacemaker_cluster_storage_nfs_server: "{{ sap_storage_nfs_server | default('') }}"
+
+        sap_ha_pacemaker_cluster_nwas_abap_sid: "{{ sap_system_sid | default('') }}"
+
+        sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+        sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+
+        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name:
+          "{{ sap_system_sid }}_ASCS{{ sap_system_nwas_abap_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"
+        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_system_sid
+         }}_ASCS{{ sap_system_nwas_abap_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"  # noqa jinja[spacing]
+
+        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name:
+          "{{ sap_system_sid }}_ERS{{ sap_system_nwas_abap_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"
+        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_system_sid
+         }}_ERS{{ sap_system_nwas_abap_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"  # noqa jinja[spacing]
+
+        # Support for SLES 15 SP5 and python311
+        ansible_python_interpreter: /usr/bin/python3
+
+
+- name: Ansible Play for Post-install alterations for Infrastructure Platform
+  hosts: localhost
+  gather_facts: false
+  tasks:
+
+    - name: Execute Ansible Role sap_vm_provision
+      ansible.builtin.include_role:
+        name: community.sap_infrastructure.sap_vm_provision
+      vars:
+        sap_vm_provision_iac_post_deployment: true
+      when: sap_vm_provision_iac_type == "ansible"
+
+
+- name: Ansible Play for checking cluster status
+  hosts: nwas_ascs
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: false
+  tasks:
+    - name: Get cluster status
+      ansible.builtin.command:
+        cmd: "{{ 'pcs' if ansible_os_family == 'RedHat' else 'crm' }} status"
+      register: cluster_status_output
+      changed_when: false
+
+    - name: Show cluster status
+      ansible.builtin.debug:
+        msg: "{{ cluster_status_output.stdout_lines }}"

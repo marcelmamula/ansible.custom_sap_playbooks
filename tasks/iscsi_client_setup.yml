@@ -22,7 +22,7 @@
     name:
       - iscsi-initiator-utils
     state: present
-  when: ansible_os_family | lower == 'redhat'
+  when: ansible_os_family == 'RedHat'
 
 - name: Discover ISCSI targets
   ansible.builtin.command:

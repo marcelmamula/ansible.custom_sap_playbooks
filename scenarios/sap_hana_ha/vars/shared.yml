@@ -2,9 +2,9 @@
 # Platform-wide specific variables used by current scenario
 
 # SAP System  - Details
-sap_system_hana_db_sid: "ENTER_STRING_VALUE_HERE"
-sap_system_hana_db_instance_nr: "ENTER_STRING_VALUE_HERE"
-sap_swpm_db_host: "ENTER_STRING_VALUE_HERE"
+sap_system_hana_db_sid: "ENTER_STRING_VALUE_HERE"  # Example: "H01"
+sap_system_hana_db_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "01"
+sap_swpm_db_host: "ENTER_STRING_VALUE_HERE" # Example: "h01hana"
 
 # SAP System - dynamic assignment of variables
 sap_hostname: "{{ ansible_hostname }}"

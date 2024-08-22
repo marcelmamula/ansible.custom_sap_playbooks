@@ -6,7 +6,7 @@ sap_vm_provision_gcp_ce_vm_host_os_image: "sles-15-sp5-sap-byos"
 
 # NFS filesystem for SAP Software
 sap_software_nfs_sources:
-  db: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.domain.com:/software/sap_hana_ha"
+  db: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.domain.com:/software/"
 
 # HA Cluster Virtual IP - ust be within the VPC Subnetwork range attached to
 # GCP Backend Service for the Internal passthrough Network Load Balancer
@@ -14,8 +14,6 @@ sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: "ENTER_STRING_VALUE_HERE" 
 
 # Variables for sap_ha_pacemaker_cluster
 sap_vm_provision_ha_vip_hana_primary: "{{ sap_ha_pacemaker_cluster_vip_hana_primary_ip_address }}"
-
-# Infrastructure variables
 sap_ha_pacemaker_cluster_vip_client_interface: 'eth0'
 
 
