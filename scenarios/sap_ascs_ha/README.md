@@ -21,11 +21,12 @@ End to end execution can be completed in approximately 30 minutes using predefin
 ## Software used during test
 Contents of NFS share that was used during testing:
 ```console
-SWPM10SP40_0-20009701.SAR
-SAPEXE_200-80007612.SAR
+SAPCAR_1200-70007716.EXE
 SAPEXEDB_200-80007611.SAR
+SAPEXE_200-80007612.SAR
+SAPHOSTAGENT61_61-80004822.SAR
+SWPM10SP40_0-20009701.SAR
 igsexe_4-80007786.sar
 igshelper_17-10010245.sar
-SAPCAR_1200-70007716.EXE
-SAPHOSTAGENT61_61-80004822.SAR
 ```
+**NOTE: This list was used during testing and it is not mandatory to use same**

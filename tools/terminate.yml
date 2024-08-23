@@ -1,5 +1,7 @@
 ---
 # Ansible playbook for terminating cloud resources
+# NOTE: Termination of Azure instances takes significantly longer than others.
+
 - name: Ansible Play to create dynamic inventory group for provisioning
   hosts: localhost
   gather_facts: false

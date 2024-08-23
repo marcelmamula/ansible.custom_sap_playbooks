@@ -102,12 +102,8 @@ Execution examples are show in specific order because of this:
 3. Platform and scenario specific variables are loaded.
 This way you can override some variables specified for all scenarios.
 
-## Preparing your execution environment
-Follow [SAP LinuxLab](https://github.com/sap-linuxlab/community.sap_install/tree/main/docs#readme) documentation.
-Playbooks were tested on:
-- Python 3.11
-- ansible 9.5.1
-- ansible-core 2.16.6
+## Before starting
+Ensure that you follow step by step instructions at [GETTING_STARTED](https://github.com/marcelmamula/ansible.custom_sap_playbooks/blob/main/GETTING_STARTED.md)
 
 ## Preparing variables before execution
 Ensure that you populate all relevant variable files as:

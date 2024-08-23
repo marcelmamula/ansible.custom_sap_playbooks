@@ -26,3 +26,4 @@ IMDB_SERVER20_076_0-80002031.SAR
 SAPCAR_1200-70007716.EXE
 SAPHOSTAGENT62_62-80004822.SAR
 ```
+**NOTE: This list was used during testing and it is not mandatory to use same**

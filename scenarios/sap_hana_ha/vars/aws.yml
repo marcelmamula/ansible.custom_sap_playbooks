@@ -55,8 +55,9 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
           filesystem_type: xfs           # default: xfs
 
         # SWAP is not required for small sandbox system
-        # - name: swap
-        #   disk_size: 96
+        # - name: swap # hdb
+        #   swap_path: /swapfile           # use swap file on root disk, instead of creating LVM LV for swap
+        #   disk_size: 2
         #   filesystem_type: swap          # must be swap filesystem
 
         - name: software
@@ -91,8 +92,9 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
           filesystem_type: xfs           # default: xfs
 
         # SWAP is not required for small sandbox system
-        # - name: swap
-        #   disk_size: 96
+        # - name: swap # hdb
+        #   swap_path: /swapfile           # use swap file on root disk, instead of creating LVM LV for swap
+        #   disk_size: 2
         #   filesystem_type: swap          # must be swap filesystem
 
         - name: software

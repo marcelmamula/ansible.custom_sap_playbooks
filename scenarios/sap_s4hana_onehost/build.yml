@@ -49,66 +49,69 @@
 
 
 - name: Ansible Play for hosts storage setup
-  hosts: hana_primary, hana_secondary
+  hosts: hana_primary
   become: true
   any_errors_fatal: true
   max_fail_percentage: 0
   tasks:
-
-    - name: Execute Ansible Role sap_vm_temp_vip
-      ansible.builtin.include_role:
-        name: community.sap_infrastructure.sap_vm_temp_vip
 
     - name: Execute Ansible Role sap_storage_setup
       ansible.builtin.include_role:
         name: community.sap_install.sap_storage_setup
       vars:  # noqa jinja[spacing]
         sap_storage_setup_sid: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
-          [inventory_hostname_short].sap_storage_setup_sid | default('') }}"
+         [inventory_hostname_short].sap_storage_setup_sid | default('') }}"
+        sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+        sap_storage_setup_nwas_abap_pas_instance_nr: "{{ sap_system_nwas_abap_pas_instance_nr }}"
         sap_storage_setup_host_type: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
-          [inventory_hostname_short].sap_storage_setup_host_type | list }}"
+         [inventory_hostname_short].sap_storage_setup_host_type | list }}"
       when:
         - sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
         - not sap_vm_provision_iac_type == "existing_hosts"
 
 
 - name: Ansible Play for preparing NFS mounts with SAP Software
-  hosts: hana_primary, hana_secondary
+  hosts: hana_primary
   become: true
   any_errors_fatal: true
   max_fail_percentage: 0
   tasks:
 
-    - name: Create mount directories
+    - name: Create software directories
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         mode: '0755'
       loop:
         - "{{ sap_software_nfs_db.mount }}"
+        - "{{ sap_software_nfs_app.mount }}"
 
-    - name: Mount network share
+    - name: Mount network share - HANA
       ansible.posix.mount:
         path: "{{ sap_software_nfs_db.mount }}"
-        src: "{{ sap_software_nfs_db.source }}"
+        src: '{{ sap_software_nfs_db.source }}'
         fstype: "{{ sap_software_nfs_db.type }}"
         state: mounted
 
+    - name: Mount network share - Application
+      ansible.posix.mount:
+        path: "{{ sap_software_nfs_app.mount }}"
+        src: '{{ sap_software_nfs_app.source }}'
+        fstype: "{{ sap_software_nfs_app.type }}"
+        state: mounted
 
-- name: Ansible Play for SAP HANA HA installation and cluster setup
-  hosts: hana_primary, hana_secondary
+
+- name: Ansible Play for preparing all SAP software hosts
+  hosts: hana_primary
   become: true
   any_errors_fatal: true
   max_fail_percentage: 0
-  vars:
-    sidadm_hana: "{{ sap_system_hana_db_sid | lower + 'adm' }}"
   tasks:
 
-    # Separate source and target is required for parallel HANA installation
-    - name: Set fact for Software source
+    - name: Set fact sidadm for futher use
       ansible.builtin.set_fact:
-        sap_install_media_detect_source_directory: "{{ sap_software_nfs_db.mount }}"
-        sap_install_media_detect_target_directory: "{{ sap_software_directory }}"
+        sidadm: "{{ sap_system_sid | lower + 'adm' }}"
+        sidadm_hana: "{{ sap_system_hana_db_sid | lower + 'adm' }}"
 
     - name: Get list of users in /etc/passwd
       ansible.builtin.getent:
@@ -118,7 +121,6 @@
       ansible.builtin.stat:
         path: "/usr/sap/{{ sap_system_hana_db_sid | upper }}/SYS/profile/DEFAULT.PFL"
       register: sap_hana_profile_stat_check
-
 
     - name: Block with preconfigure roles
       when: not sidadm_hana in getent_passwd.keys() or not sap_hana_profile_stat_check.stat.exists
@@ -131,10 +133,22 @@
           ansible.builtin.include_role:
             name: community.sap_install.sap_hana_preconfigure
 
-        - name: Execute Ansible Role sap_vm_temp_vip
+        - name: Execute Ansible Role sap_netweaver_preconfigure
           ansible.builtin.include_role:
-            name: community.sap_infrastructure.sap_vm_temp_vip
+            name: community.sap_install.sap_netweaver_preconfigure
 
+
+- name: Ansible Play for SAP HANA Database Server installation
+  hosts: hana_primary
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
+
+    - name: Set fact for Software source
+      ansible.builtin.set_fact:
+        sap_install_media_detect_source_directory: "{{ sap_software_nfs_db.mount }}"
+        sap_install_media_detect_target_directory: "{{ sap_software_directory }}"
 
     - name: Execute Ansible Role sap_install_media_detect
       ansible.builtin.include_role:
@@ -165,89 +179,42 @@
       when:
         - not sidadm_hana in getent_passwd.keys() or not sap_hana_profile_stat_check.stat.exists
 
-    - name: Re-check if SAP HANA profile is present after installation
-      ansible.builtin.stat:
-        path: "/usr/sap/{{ sap_system_hana_db_sid | upper }}/SYS/profile/DEFAULT.PFL"
-      register: sap_hana_profile_stat_recheck
 
+- name: Ansible Play for S4H Installation
+  hosts: hana_primary
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  tasks:
 
-    - name: Set Ansible Variable shared by sap_ha_install_hana_hsr and sap_ha_pacemaker_cluster for SAP HANA scale-up HA cluster configuration
+    - name: Set fact for Software source
       ansible.builtin.set_fact:
-        sap_hana_cluster_nodes:
-          - node_name: "{{ hostvars[groups['hana_primary'][0]].ansible_hostname }}"
-            node_ip: "{{ hostvars[groups['hana_primary'][0]]['ansible_default_ipv4']['address'] }}"
-            node_role: primary
-            hana_site: DC01
-          - node_name: "{{ hostvars[groups['hana_secondary'][0]].ansible_hostname }}"
-            node_ip: "{{ hostvars[groups['hana_secondary'][0]]['ansible_default_ipv4']['address'] }}"
-            node_role: secondary
-            hana_site: DC02
+        sap_install_media_detect_source_directory: "{{ sap_software_nfs_app.mount }}"
+        sap_install_media_detect_target_directory: ""
 
-    - name: Attempt to start HANA
-      ansible.builtin.shell: |
-        source /usr/sap/{{ sap_system_hana_db_sid | upper }}/home/.sapenv.sh && \
-        HDB start
-      become: true
-      become_user: "{{ sidadm_hana }}"
-      when: sap_hana_profile_stat_check.stat.exists or sap_hana_profile_stat_recheck.stat.exists
-      changed_when: false
-      failed_when: false
-
-    - name: Verify if HSR replication is enabled
-      ansible.builtin.shell: |
-        source /usr/sap/{{ sap_system_hana_db_sid | upper }}/home/.sapenv.sh && \
-        /usr/sap/{{ sap_system_hana_db_sid | upper }}/HDB{{ sap_system_hana_db_instance_nr }}/exe/hdbnsutil \
-        -sr_state
-      become: true
-      become_user: "{{ sidadm_hana }}"
-      when: sap_hana_profile_stat_check.stat.exists or sap_hana_profile_stat_recheck.stat.exists
-      register: sap_hana_hsr_srstate
-      changed_when: false
-      failed_when: false
-
-    - name: Execute Ansible Role sap_ha_install_hana_hsr
-      ansible.builtin.include_role:
-        name: community.sap_install.sap_ha_install_hana_hsr
-      vars:
-        sap_ha_install_hana_hsr_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
-      when: ansible_hostname not in sap_hana_hsr_srstate.stdout
-
-
-    # Validating file presence is safer than checking cluster status, as there are many more variables.
-    - name: Check Pacemaker cluster configuration is present
+    - name: Check if SAP profile is present
       ansible.builtin.stat:
-        path: "{{ item }}"
-      register: cluster_config_file_stat
-      loop:
-        - /etc/corosync/corosync.conf
-        - /var/lib/pacemaker/cib/cib.xml
+        path: "/sapmnt/{{ sap_system_sid | upper }}/profile/DEFAULT.PFL"
+      register: sap_profile_stat_check
 
-    - name: Execute Ansible Role sap_ha_pacemaker_cluster
+    - name: Execute Ansible Role sap_install_media_detect
       ansible.builtin.include_role:
-        name: community.sap_install.sap_ha_pacemaker_cluster
-      when: "false in cluster_config_file_stat.results | map(attribute='stat.exists')"
+        name: community.sap_install.sap_install_media_detect
       vars:
-        sap_ha_pacemaker_cluster_cluster_name: clusterhdb
-        sap_ha_pacemaker_cluster_hacluster_user_password: 'clusterpass'
+        sap_install_media_detect_swpm: true
+        sap_install_media_detect_hostagent: true
+        sap_install_media_detect_igs: true
+        sap_install_media_detect_kernel: true
+        sap_install_media_detect_webdisp: false
+        sap_install_media_detect_db_client: "saphana"
+        sap_install_media_detect_export: "saps4hana"
+      when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
 
-        sap_ha_pacemaker_cluster_sap_type: saphana_scaleup
-        sap_ha_pacemaker_cluster_host_type:
-          - hana_scaleup_perf
 
-        sap_ha_pacemaker_cluster_hana_sid: "{{ sap_system_hana_db_sid }}"
-        sap_ha_pacemaker_cluster_hana_instance_nr: "{{ sap_system_hana_db_instance_nr }}"
-
-        sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
-        sap_ha_pacemaker_cluster_replication_type: none
-        sap_ha_pacemaker_cluster_vip_resource_group_name: viphdb
-
-        sap_ha_pacemaker_cluster_cluster_properties:
-          concurrent-fencing: true
-          stonith-enabled: true
-          stonith-timeout: 900
-
-        # Support for SLES 15 SP5 and python311
-        ansible_python_interpreter: /usr/bin/python3
+    - name: Execute Ansible Role sap_swpm
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_swpm
+      when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
 
 
 - name: Ansible Play for Post-install alterations for Infrastructure Platform
@@ -261,21 +228,3 @@
       vars:
         sap_vm_provision_iac_post_deployment: true
       when: sap_vm_provision_iac_type == "ansible"
-
-
-- name: Ansible Play for checking cluster status
-  hosts: hana_primary
-  become: true
-  any_errors_fatal: true
-  max_fail_percentage: 0
-  gather_facts: false
-  tasks:
-    - name: Get cluster status
-      ansible.builtin.command:
-        cmd: "{{ 'pcs' if ansible_os_family == 'RedHat' else 'crm' }} status"
-      register: cluster_status_output
-      changed_when: false
-
-    - name: Show cluster status
-      ansible.builtin.debug:
-        msg: "{{ cluster_status_output.stdout_lines }}"
