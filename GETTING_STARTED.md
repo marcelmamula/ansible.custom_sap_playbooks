@@ -13,13 +13,47 @@ You can select any OS of your preference as long as it fits criteria:
 - Availability to install fairly recent versions of both Python and Ansible
 - Availability to install ansible collections
 
-Playbooks were tested on `openSUSE Tumbleweed running in WSL2 container on Windows 10`
+Playbooks were tested on:
+- `openSUSE Tumbleweed running in WSL2 container on Windows 10` - as execution environment
+- `SUSE Linux Enterprise Server for SAP applications 15 SP 5` - as target server
 
 ## Prepare your cloud environment
 Each cloud platform requires base minimum infrastructure when using `ansible` instead of `terraform`.</br>
 Follow [documentation on Ansible Playbooks for SAP](https://github.com/sap-linuxlab/ansible.playbooks_for_sap/tree/main/docs#prepare-infrastructure-platform-for-ansible-playbooks-for-sap) 
 
-Example with resources required for AWS before execution:
+**Additional IAM permissions are required for tagging and termination of resources:**
+<details>
+<summary><b>AWS:</b></summary>
+
+```json
+"ec2:DescribeTags",
+"ec2:CreateTags",
+"ec2:DeleteVolume",
+"ec2:TerminateInstances"
+```
+</details>
+
+<details>
+<summary><b>Azure:</b></summary>
+
+```json
+Microsoft.Compute/virtualMachines/delete
+Microsoft.Compute/disks/delete
+Microsoft.Network/loadBalancers/delete
+Microsoft.Network/networkInterfaces/delete
+```
+</details>
+
+<details>
+<summary><b>Google:</b></summary>
+
+```json
+compute.disks.delete
+compute.instances.delete
+```
+</details>
+
+</br>Example with resources required for AWS before execution:
 - VPC
     - VPC Access Control List (ACL)
     - VPC Subnets
@@ -32,11 +66,15 @@ Example with resources required for AWS before execution:
 
 **NOTE:** It is possible to deploy most of this infrastructure by using Ansible Playbooks for SAP with `sap_vm_provision_iac_type == "ansible_to_terraform"`, but this is not documented in these custom playbooks.
 
+
+
+</details>
+
 ## Install required packages
 Install following packages with appropriate versions:
 - Python 3.9 or higher
-- Ansible 9
-- Ansible 2.16
+- Ansible 9.x
+- Ansible 2.16.x
 You can verify compatibility with [Ansible documentation](https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-community-changelogs)
 
 Playbooks were tested on:

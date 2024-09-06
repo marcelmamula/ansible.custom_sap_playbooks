@@ -1,0 +1,226 @@
+---
+# Platform-wide specific variables used by current scenario
+
+# SAP System  - Details
+sap_system_sid: "ENTER_STRING_VALUE_HERE"  # Example: "PR2"
+sap_system_hana_db_sid: "ENTER_STRING_VALUE_HERE"  # Example: "PR2"
+sap_system_hana_db_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "90"
+sap_system_nwas_abap_ascs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
+sap_system_nwas_abap_ers_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "10"
+sap_system_nwas_abap_pas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "01"
+sap_system_nwas_abap_aas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "11"
+sap_swpm_db_host: "ENTER_STRING_VALUE_HERE"  # Example: "pr2hana"
+
+# SAP System - dynamic assignment of variables
+sap_hostname: "{{ ansible_hostname }}"
+sap_domain: "{{ ansible_domain }}"
+sap_ip: "{{ ansible_default_ipv4.address }}"
+
+# Provisioning variables for sap_infrastructure
+sap_vm_provision_iac_type: "ansible"
+sap_vm_provision_ha_load_balancer_name_hana: "{{ sap_system_sid | lower }}-lb-sap-ha-hana"
+sap_vm_provision_ha_load_balancer_name_nwas: "{{ sap_system_sid | lower }}-lb-sap-ha-nwas"
+
+# NFS filesystem details where SAP Software is located
+# This scenario is using NFS as source instead of SAP software download using sap_launchpad
+sap_software_directory: /software  # Specify target for unpacked software
+sap_software_nfs_app:
+  mount: /software_app  # Specify mount for NFS filesystem
+  source: "{{ sap_software_nfs_sources.app }}"  # NFS source defined in platform vars
+  type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+sap_software_nfs_db:
+  mount: /software_db # Specify mount for NFS filesystem
+  source: "{{ sap_software_nfs_sources.db }}" # NFS source defined in platform vars
+  type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+
+# Configuration of Ansible Roles for preconfigure SAP (general, hana, netweaver)
+sap_general_preconfigure_modify_etc_hosts: false
+sap_general_preconfigure_reboot_ok: true
+sap_general_preconfigure_fail_if_reboot_required: false
+sap_hana_preconfigure_reboot_ok: true
+sap_hana_preconfigure_fail_if_reboot_required: false
+sap_hana_preconfigure_update: true
+sap_hana_update_etchosts: true
+# Disables SWAP size check for development system
+sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured: false
+
+
+# SWPM - main variables
+sap_swpm_templates_product_input_prefix: "sap_s4hana_2023_distributed"
+sap_swpm_ansible_role_mode: default_templates
+sap_swpm_fqdn: "{{ ansible_domain }}"
+sap_swpm_update_etchosts: 'false'
+
+# SWPM - dynamic variables
+sap_swpm_sid: "{{ sap_system_sid }}"
+sap_swpm_ascs_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ascs[0] }}ha"
+sap_swpm_ers_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ers[0] }}ha"
+sap_swpm_pas_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_pas[0] }}"
+sap_swpm_aas_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_aas[0] }}"
+sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+sap_swpm_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+sap_swpm_pas_instance_nr: "{{ sap_system_nwas_abap_pas_instance_nr }}"
+sap_swpm_aas_instance_nr: "{{ sap_system_nwas_abap_aas_instance_nr }}"
+sap_swpm_db_sid: "{{ sap_system_hana_db_sid }}"
+sap_swpm_db_instance_nr: "{{ sap_system_hana_db_instance_nr }}"
+
+# SWPM - master password variables
+# Override any variable set in sap_swpm_inifile_dictionary
+sap_swpm_master_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_ddic_000_password: "ENTER_STRING_VALUE_HERE"
+
+# SWPM - database password variables
+sap_swpm_db_schema_abap: "SAPHANADB"
+sap_swpm_db_schema_abap_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_sidadm_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_system_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_systemdb_password: "ENTER_STRING_VALUE_HERE"
+
+# SWPM - user id variables
+sap_swpm_sapadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3000"
+sap_swpm_sapsys_gid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
+sap_swpm_sidadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
+
+# SAP HANA Install variables
+sap_hana_sid: "{{ sap_system_hana_db_sid }}"
+sap_hana_install_instance_nr: "{{ sap_system_hana_db_instance_nr }}"
+sap_hana_install_master_password: "ENTER_STRING_VALUE_HERE"
+sap_hana_install_update_etchosts: false
+sap_hana_install_use_master_password: "y"
+sap_hana_install_log_mode: overwrite
+
+# SAP HANA System Replication (HSR) installation
+sap_ha_install_hana_hsr_sid: "{{ sap_system_hana_db_sid }}"
+sap_ha_install_hana_hsr_instance_number: "{{ sap_system_hana_db_instance_nr }}"
+sap_ha_install_hana_hsr_db_system_password: "{{ sap_hana_install_master_password }}"
+
+# SAP Instance Profile details for sap_ha_pacemaker_cluster and installation detection
+sap_profile_name_ascs:
+  "{{ sap_system_sid | upper }}_ASCS{{ sap_swpm_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"
+sap_profile_path_ascs:
+  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_ascs }}"
+
+sap_profile_name_ers:
+  "{{ sap_system_sid | upper }}_ERS{{ sap_swpm_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"
+sap_profile_path_ers:
+  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_ers }}"
+
+sap_profile_name_pas:
+  "{{ sap_system_sid | upper }}_D{{ sap_swpm_pas_instance_nr }}_{{ sap_swpm_pas_instance_hostname }}"
+sap_profile_path_pas:
+  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_pas }}"
+
+sap_profile_name_aas:
+  "{{ sap_system_sid | upper }}_D{{ sap_swpm_aas_instance_nr }}_{{ sap_swpm_aas_instance_hostname }}"
+sap_profile_path_aas:
+  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_aas }}"
+
+
+# Dictionary with SWPM details for each host
+sap_swpm_templates_install_dictionary:
+  sap_s4hana_2023_distributed_nwas_ascs_ha:
+    sap_swpm_product_catalog_id: NW_ABAP_ASCS:S4HANA2023.CORE.HDB.ABAPHA
+
+    sap_swpm_inifile_list:
+      - swpm_installation_media
+      - swpm_installation_media_swpm2_hana
+      - credentials
+      - credentials_hana
+      - db_config_hana
+      - db_connection_nw_hana
+      - nw_config_other
+      - nw_config_central_services_abap
+      - nw_config_primary_application_server_instance
+      - nw_config_ports
+      - nw_config_host_agent
+      - sap_os_linux_user
+
+    sap_swpm_inifile_dictionary:
+      sap_swpm_install_saphostagent: 'true'
+
+
+  sap_s4hana_2023_distributed_nwas_ers_ha:
+    sap_swpm_product_catalog_id: NW_ERS:S4HANA2023.CORE.HDB.ABAPHA
+
+    sap_swpm_inifile_list:
+      - swpm_installation_media
+      - credentials
+      - nw_config_other
+      - nw_config_ers
+      - sap_os_linux_user
+
+    sap_swpm_inifile_dictionary:
+      sap_swpm_install_saphostagent: 'true'
+
+
+  sap_s4hana_2023_distributed_nwas_pas_dbload_ha:
+    sap_swpm_product_catalog_id: NW_ABAP_DB:S4HANA2023.CORE.HDB.ABAPHA
+
+    sap_swpm_inifile_list:
+      - swpm_installation_media
+      - swpm_installation_media_swpm2_hana
+      - credentials
+      - credentials_hana
+      - db_config_hana
+      - db_connection_nw_hana
+      - nw_config_other
+      - nw_config_central_services_abap
+      - nw_config_primary_application_server_instance
+      - nw_config_ports
+      - nw_config_host_agent
+      - sap_os_linux_user
+
+    sap_swpm_inifile_dictionary:
+      sap_swpm_install_saphostagent: 'true'
+
+
+  sap_s4hana_2023_distributed_nwas_pas:
+    sap_swpm_product_catalog_id: NW_ABAP_CI:S4HANA2023.CORE.HDB.ABAP
+
+    sap_swpm_inifile_list:
+      - swpm_installation_media
+      - swpm_installation_media_swpm2_hana
+      - credentials
+      - credentials_hana
+      - db_config_hana
+      - db_connection_nw_hana
+      - nw_config_other
+      - nw_config_central_services_abap
+      - nw_config_primary_application_server_instance
+      - nw_config_ports
+      - nw_config_host_agent
+      - sap_os_linux_user
+
+    sap_swpm_inifile_dictionary:
+      sap_swpm_install_saphostagent: 'true'
+
+
+  sap_s4hana_2023_distributed_nwas_aas:
+    sap_swpm_product_catalog_id: NW_DI:S4HANA2023.CORE.HDB.PD
+
+    sap_swpm_inifile_list:
+      - swpm_installation_media
+      - swpm_installation_media_swpm2_hana
+      - credentials
+      - credentials_hana
+      - db_config_hana
+      - db_connection_nw_hana
+      - nw_config_ports
+      - nw_config_other
+      - nw_config_additional_application_server_instance
+      - nw_config_host_agent
+      - sap_os_linux_user
+
+    sap_swpm_inifile_dictionary:
+      sap_swpm_db_schema: "{{ sap_swpm_db_schema_abap }}"
+      sap_swpm_db_schema_password: "{{ sap_swpm_db_schema_abap_password }}"
+      sap_swpm_install_saphostagent: 'true'
+
+# DEBUG: Flag to disable SAPHanaSR-angi detection and use Classic
+# sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: false
+
+# DEBUG: Flag for sap_ha_pacemaker_cluster troubleshooting
+# __sap_ha_pacemaker_cluster_no_log: false
+
+# DEBUG: Flag for sap_vm_provision troubleshooting
+# __sap_vm_provision_no_log: false

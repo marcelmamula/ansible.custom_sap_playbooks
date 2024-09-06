@@ -72,21 +72,15 @@ sap_swpm_sapsys_gid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
 sap_swpm_sidadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
 
 # SAP HANA Install variables
-sap_hana_install_master_password: "ENTER_STRING_VALUE_HERE"
-sap_hana_install_update_etchosts: false
 sap_hana_sid: "{{ sap_system_hana_db_sid }}"
 sap_hana_install_instance_nr: "{{ sap_system_hana_db_instance_nr }}"
+sap_hana_install_master_password: "ENTER_STRING_VALUE_HERE"
+sap_hana_install_update_etchosts: false
 sap_hana_install_use_master_password: "y"
 sap_hana_install_log_mode: overwrite
 
-# SAP HANA System Replication (HSR) installation
-sap_ha_install_hana_hsr_sid: "{{ sap_system_hana_db_sid }}"
-sap_ha_install_hana_hsr_instance_number: "{{ sap_system_hana_db_instance_nr }}"
-sap_ha_install_hana_hsr_db_system_password: "{{ sap_hana_install_master_password }}"
 
-
-sap_swpm_product_catalog_id: NW_ABAP_OneHost:S4HANA2023.CORE.HDB.ABAP
-
+# Dictionary with SWPM details for each host
 sap_swpm_templates_install_dictionary:
   sap_s4hana_2023_sandbox:
 
@@ -109,3 +103,6 @@ sap_swpm_templates_install_dictionary:
     sap_swpm_inifile_dictionary:
 
       sap_swpm_install_saphostagent: 'true'
+
+# DEBUG: Flag for sap_vm_provision troubleshooting
+# __sap_vm_provision_no_log: false

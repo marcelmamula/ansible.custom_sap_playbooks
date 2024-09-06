@@ -61,7 +61,7 @@
         sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_system_sid
          }}_ERS{{ sap_system_nwas_abap_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"  # noqa jinja[spacing]
 
-        # Support for SLES 15 SP5 and python311
+        # Ensure that python interpreter points to python3
         ansible_python_interpreter: /usr/bin/python3
 
 
@@ -131,7 +131,7 @@
         sap_ha_pacemaker_cluster_replication_type: none
         sap_ha_pacemaker_cluster_vip_resource_group_name: viphdb
 
-        # Support for SLES 15 SP5 and python311
+        # Ensure that python interpreter points to python3
         ansible_python_interpreter: /usr/bin/python3
 
     - name: Unregister OS for BYOS image

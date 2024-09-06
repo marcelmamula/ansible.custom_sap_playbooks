@@ -12,7 +12,7 @@
 ## Available cloud configurations
 Scenario was tested with following cloud platforms:
 - AWS
-- Google Cloud
+- Google Cloud (TODO: Resolve HA Cluster to haproxy issues in sap_ha_pacemaker_cluster role)
 - MS Azure
 
 ## Execution runtime

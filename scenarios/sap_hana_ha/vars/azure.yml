@@ -9,7 +9,7 @@ sap_software_nfs_sources:
   db: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.file.core.windows.net:/nfs/software/sap_hana_ha"
 
 # HA Cluster Virtual IP - must be within the VNet Subnet CIDR Range attached to the Load Balancer
-sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.1.1/32"
+sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.210/32"
 
 # Variables for sap_ha_pacemaker_cluster
 sap_ha_pacemaker_cluster_msazure_subscription_id: "{{ sap_vm_provision_msazure_subscription_id }}"
@@ -55,12 +55,6 @@ sap_vm_provision_msazure_vm_host_specifications_dictionary:
           disk_type: P15
           filesystem_type: xfs           # default: xfs
 
-        # SWAP is not required for small sandbox system
-        # - name: swap
-        #   disk_size: 4
-        #   disk_type: P1
-        #   filesystem_type: swap          # must be swap filesystem
-
         - name: software
           mountpoint: /software
           disk_size: 10                 # size in GB, integer
@@ -97,12 +91,6 @@ sap_vm_provision_msazure_vm_host_specifications_dictionary:
           disk_size: 30                 # size in GB, integer
           disk_type: P15
           filesystem_type: xfs           # default: xfs
-
-        # SWAP is not required for small sandbox system
-        # - name: swap
-        #   disk_size: 4
-        #   disk_type: P1
-        #   filesystem_type: swap          # must be swap filesystem
 
         - name: software
           mountpoint: /software

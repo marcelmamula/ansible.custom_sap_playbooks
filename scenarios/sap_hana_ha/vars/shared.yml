@@ -48,14 +48,6 @@ sap_ha_install_hana_hsr_instance_number: "{{ sap_system_hana_db_instance_nr }}"
 sap_ha_install_hana_hsr_db_system_password: "{{ sap_hana_install_master_password }}"
 
 
-# Software regex for sap_install_media_detect role
-sap_hana_install_media_dictionary_regex:
-  sap_hana_2_install:
-    software_files_wildcard_list:
-      - 'SAPCAR*'
-      - 'IMDB_*'
-      - 'SAPHOSTAGENT*'
-
 # DEBUG: Flag for sap_ha_pacemaker_cluster troubleshooting
 # __sap_ha_pacemaker_cluster_no_log: false
 

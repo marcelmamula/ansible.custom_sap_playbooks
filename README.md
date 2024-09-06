@@ -14,12 +14,19 @@ Included configurations are for cheaper and smaller servers, while retaining ful
     - Reduce duration of SAP Software preparation, dependent on internet speed and bandwidth.
     - **NOTE**: You are responsible in providing correct software in NFS filesystem (examples are provided or each scenario).
 2. Idempotency improvements by additional validation steps 
-    - Skip `sap_install_media_detect` if user `sidadm` is present. User is created during `swpm` and `hdblcm`, so skip happens during re-execution.
-    - Skip `sap_hana_install` if HANA profile is already present.
+    - Skip `sap_general_preconfigure`, `sap_hana_preconfigure`, `sap_netweaver_preconfigure` if user `sidadm` is present and instance profile already exists.
+    - Skip `sap_install_media_detect` if user `sidadm` is present and instance profile already exists.
+    - Skip `sap_swpm` if user `sidadm` is present and instance profile already exists.
+    - Skip `sap_hana_install` if HANA default profile already exists.
     - Skip `sap_ha_install_hana_hsr` if replication configuration is already present.
     - Skip `sap_ha_pacemaker_cluster` if cluster configuration is already present
 3. Quality of Life improvements (tasks/)
-    - Task for additional tagging of resources
+    - `iscsi_client_setup` - (Optional) Setup of client for iSCSI SBD stonith
+    - `iscsi_server_setup` - (Optional) Setup of target for iSCSI SBD stonith
+    - `nfs_cleanup` - Cleanup of NFS mounts for Netweaver instances
+    - `os_register` - Register and unregister BYOS images. Used by terminate playbook.
+    - `prepare_inventory` - Creates dynamic inventory based on variable files. Usable for debugging without `sap_infrastructure` role.
+    - `tag_resources` - Tag provisioned resources.
 4. Development tools (tools/)
     - `cluster_setup.yml` allows you to setup HA cluster on provisioned servers. This is very useful for cluster testing and configuration changes.
     - `cluster_destroy.yml` allows you to remove HA cluster configuration, before executing `cluster_setup.yml`. **This is destructive tool!**

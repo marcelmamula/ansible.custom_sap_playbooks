@@ -27,6 +27,16 @@
       ansible.builtin.include_tasks:
         file: ../../tasks/tag_resources.yml
 
+    - name: Get list of users in /etc/passwd
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: Set general facts for provisioned hosts
+      ansible.builtin.set_fact:
+        sidadm: "{{ (sap_system_sid | lower + 'adm') if sap_system_sid is defined and sap_system_sid | length > 0 else omit }}"
+        sidadm_hana: "{{ (sap_system_hana_db_sid | lower ~ 'adm') if sap_system_hana_db_sid is defined and sap_system_hana_db_sid | length > 0 else omit }}"
+        # Ensure that python interpreter points to python3
+        ansible_python_interpreter: /usr/bin/python3
 
 # Google DNS is not refreshing cache quick enough during frequent rebuilds.
 - name: Ansible Play to flush DNS on Google Cloud
@@ -84,28 +94,9 @@
   serial: 1
   tasks:
 
-    - name: Get list of users in /etc/passwd
-      ansible.builtin.getent:
-        database: passwd
-
-    - name: Cleanup NFS filesystems for fresh install
-      when:
-        - "sap_system_sid | lower + 'adm' not in getent_passwd.keys()"
-      block:
-        - name: Identify NFS mounts excluding nfs software  # noqa risky-shell-pipe
-          ansible.builtin.shell:
-            cmd: "cat /proc/mounts | grep nfs4 | grep -v software |  awk '{print $2}'"
-          register: mounted_nfs_found
-          changed_when: false
-
-        - name: Cleanup mounted nfs shares  # noqa command-instead-of-shell
-          ansible.builtin.shell:
-            cmd: "rm -rf {{ item | regex_replace('$', '/*') }}"
-          loop: "{{ mounted_nfs_found.stdout_lines }}"
-          when:
-            - mounted_nfs_found is defined
-            - mounted_nfs_found | length > 0
-          changed_when: true
+    - name: Cleanup NFS mounts for distribured SAP Netweaver
+      ansible.builtin.include_tasks:
+        file: ../../tasks/nfs_cleanup.yml
 
 
 - name: Ansible Play for preparing NFS mounts with SAP Software
@@ -131,7 +122,7 @@
         state: mounted
 
 
-- name: Ansible Play for preparing all SAP software hosts
+- name: Ansible Play for preconfigure tasks
   hosts: nwas_ascs, nwas_ers
   become: true
   any_errors_fatal: true
@@ -148,7 +139,9 @@
 
     - name: Check if SAP profile is present
       ansible.builtin.stat:
-        path: "/sapmnt/{{ sap_system_sid | upper }}/profile/DEFAULT.PFL"
+        path:
+          "{{ sap_profile_path_ascs if 'nwas_ascs' in group_names
+            else sap_profile_path_ers if 'nwas_ers' in group_names }}"
       register: sap_profile_stat_check
 
     - name: Block with preconfigure roles
@@ -172,7 +165,7 @@
         sap_install_media_detect_source_directory: "{{ sap_software_nfs_app.mount }}"
 
 
-- name: Ansible Play for SAP NetWeaver Application Server installation - ASCS
+- name: Ansible Play for SAP NetWeaver Application Server installation - ABAP Central Services (ASCS)
   hosts: nwas_ascs
   become: true
   any_errors_fatal: true
@@ -198,13 +191,10 @@
         sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ascs_ha"
         sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
         sap_swpm_virtual_hostname: "{{ sap_swpm_ascs_instance_hostname }}"
-
-        # Support for SLES 15 SP5 and python311
-        ansible_python_interpreter: /usr/bin/python3
       when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
 
 
-- name: Ansible Play for SAP NetWeaver Application Server installation - ERS
+- name: Ansible Play for SAP NetWeaver Application Server installation - Enqueue Replication Service (ERS)
   hosts: nwas_ers
   become: true
   any_errors_fatal: true
@@ -230,9 +220,6 @@
         sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ers_ha"
         sap_swpm_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
         sap_swpm_virtual_hostname: "{{ sap_swpm_ers_instance_hostname }}"
-
-        # Support for SLES 15 SP5 and python311
-        ansible_python_interpreter: /usr/bin/python3
       when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
 
 
@@ -265,8 +252,8 @@
 
         sap_ha_pacemaker_cluster_vip_resource_group_name: vipnwasascs
 
-        sap_ha_pacemaker_cluster_storage_definition: "{{ lookup('vars', 'sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary')
-          [sap_vm_provision_host_specification_plan][ansible_hostname].storage_definition | list }}"
+        sap_ha_pacemaker_cluster_storage_definition:
+          "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan][inventory_hostname_short].storage_definition | list }}"
 
         sap_ha_pacemaker_cluster_storage_nfs_filesytem_type: nfs4
         sap_ha_pacemaker_cluster_storage_nfs_mount_options: defaults,hard,acl
@@ -277,18 +264,11 @@
         sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
         sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name:
-          "{{ sap_system_sid }}_ASCS{{ sap_system_nwas_abap_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_system_sid
-         }}_ASCS{{ sap_system_nwas_abap_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"  # noqa jinja[spacing]
+        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name: "{{ sap_profile_name_ascs }}"
+        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: "{{ sap_profile_path_ascs }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name:
-          "{{ sap_system_sid }}_ERS{{ sap_system_nwas_abap_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_system_sid
-         }}_ERS{{ sap_system_nwas_abap_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"  # noqa jinja[spacing]
-
-        # Support for SLES 15 SP5 and python311
-        ansible_python_interpreter: /usr/bin/python3
+        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name: "{{ sap_profile_name_ers }}"
+        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: "{{ sap_profile_path_ers }}"
 
 
 - name: Ansible Play for Post-install alterations for Infrastructure Platform

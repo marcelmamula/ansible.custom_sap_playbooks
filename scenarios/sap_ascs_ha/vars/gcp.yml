@@ -35,8 +35,6 @@ sap_vm_provision_gcp_ce_vm_host_specifications_dictionary:
       virtual_machine_profile: "e2-standard-4"  # e2-standard-4: 4CPU 16GB RAM
       disable_ip_anti_spoofing: true
 
-      vip_overlay_assignment: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address }}"
-
       sap_storage_setup_sid: "{{ sap_system_sid }}"
       sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
 
@@ -67,24 +65,11 @@ sap_vm_provision_gcp_ce_vm_host_specifications_dictionary:
           nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
           nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
 
-        # SWAP is not required for small sandbox system
-        # - name: swap
-        #   disk_size: 96
-        #   filesystem_type: swap
-
-        # Software is not required because installation is done directly from Software NFS
-        # - name: software
-        #   mountpoint: /software
-        #   disk_size: 20
-        #   filesystem_type: xfs
-
 
     ae1ers: # Hostname, must be 13 characters or less
       sap_host_type: nwas_ers
       virtual_machine_profile: "e2-standard-4"  # e2-standard-4: 4CPU 16GB RAM
       disable_ip_anti_spoofing: true
-
-      vip_overlay_assignment: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address }}"
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
       sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
@@ -115,14 +100,3 @@ sap_vm_provision_gcp_ce_vm_host_specifications_dictionary:
           nfs_server: "{{ sap_vm_provision_nfs_mount_point | default('') }}"
           nfs_filesystem_type: "{{ sap_vm_provision_nfs_mount_point_type | default('') }}"
           nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
-
-        # SWAP is not required for small sandbox system
-        # - name: swap
-        #   disk_size: 96
-        #   filesystem_type: swap
-
-        # Software is not required because installation is done directly from Software NFS
-        # - name: software
-        #   mountpoint: /software
-        #   disk_size: 20
-        #   filesystem_type: xfs

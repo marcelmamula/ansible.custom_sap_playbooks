@@ -1,0 +1,37 @@
+# Dedicated task to cleanup NFS mounts used for distributed SAP Netweaver instances
+
+- name: Combine all passwd entries together
+  ansible.builtin.set_fact:
+    passwd_list: "{{ (passwd_list | d([])) + (hostvars[item].getent_passwd.keys() | d([])) }}"
+  loop: "{{ groups['all'] }}"
+
+
+- name: Block to cleanup NFS filesystems if user is not found
+  when:
+    - not sidadm in passwd_list
+    - sap_software_nfs_app is defined and sap_software_nfs_app.type is defined and sap_software_nfs_app.type | length > 0
+    - sap_vm_provision_nfs_mount_point is defined and sap_vm_provision_nfs_mount_point | length > 0
+  block:
+    - name: Get NFS mounts details  # noqa risky-shell-pipe
+      ansible.builtin.shell:
+        cmd: "cat /proc/mounts | grep {{ sap_software_nfs_app.type }}"
+      register: mounted_nfs_found
+      changed_when: false
+
+    - name: Cleanup mounted NFS shares  # noqa command-instead-of-shell
+      ansible.builtin.shell:
+        cmd: "rm -rf {{ item.split()[1] | regex_replace('$', '/*') }}"
+      loop: "{{ mounted_nfs_found.stdout_lines }}"
+      loop_control:
+        label: "Cleanup - {{ item.split()[1] }}"
+      when:
+        - mounted_nfs_found is defined
+        - mounted_nfs_found | length > 0
+        - sap_vm_provision_nfs_mount_point in item or sap_vm_provision_nfs_mount_point_separate_sap_transport_dir in item
+      changed_when: true
+
+
+- name: Report that NFS cleanup was skipped if user was found
+  ansible.builtin.debug:
+    msg: "INFO: NFS Cleanup was skipped because {{ sidadm }} user was found."
+  when: sidadm in passwd_list

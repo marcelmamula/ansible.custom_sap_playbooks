@@ -27,6 +27,17 @@
       ansible.builtin.include_tasks:
         file: ../../tasks/tag_resources.yml
 
+    - name: Get list of users in /etc/passwd
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: Set general facts for provisioned hosts
+      ansible.builtin.set_fact:
+        sidadm: "{{ (sap_system_sid | lower + 'adm') if sap_system_sid is defined and sap_system_sid | length > 0 else omit }}"
+        sidadm_hana: "{{ (sap_system_hana_db_sid | lower ~ 'adm') if sap_system_hana_db_sid is defined and sap_system_hana_db_sid | length > 0 else omit }}"
+        # Ensure that python interpreter points to python3
+        ansible_python_interpreter: /usr/bin/python3
+
 
 # Google DNS is not refreshing cache quick enough during frequent rebuilds.
 - name: Ansible Play to flush DNS on Google Cloud
@@ -101,21 +112,12 @@
         state: mounted
 
 
-- name: Ansible Play for preparing all SAP software hosts
+- name: Ansible Play for preconfigure tasks
   hosts: hana_primary
   become: true
   any_errors_fatal: true
   max_fail_percentage: 0
   tasks:
-
-    - name: Set fact sidadm for futher use
-      ansible.builtin.set_fact:
-        sidadm: "{{ sap_system_sid | lower + 'adm' }}"
-        sidadm_hana: "{{ sap_system_hana_db_sid | lower + 'adm' }}"
-
-    - name: Get list of users in /etc/passwd
-      ansible.builtin.getent:
-        database: passwd
 
     - name: Check if SAP HANA profile is present
       ansible.builtin.stat:

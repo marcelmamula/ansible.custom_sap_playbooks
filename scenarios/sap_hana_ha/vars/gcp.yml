@@ -52,12 +52,6 @@ sap_vm_provision_gcp_ce_vm_host_specifications_dictionary:
           disk_type: pd-ssd
           filesystem_type: xfs           # default: xfs
 
-        # SWAP is not required for small sandbox system
-        # - name: swap
-        #   swap_path: /swapfile           # use swap file on root disk, instead of creating LVM LV for swap
-        #   disk_size: 2
-        #   filesystem_type: swap          # must be swap filesystem
-
         - name: software
           mountpoint: /software
           disk_size: 10                 # size in GB, integer
@@ -92,12 +86,6 @@ sap_vm_provision_gcp_ce_vm_host_specifications_dictionary:
           disk_size: 30                 # size in GB, integer
           disk_type: pd-ssd
           filesystem_type: xfs           # default: xfs
-
-        # SWAP is not required for small sandbox system
-        # - name: swap
-        #   swap_path: /swapfile           # use swap file on root disk, instead of creating LVM LV for swap
-        #   disk_size: 2
-        #   filesystem_type: swap          # must be swap filesystem
 
         - name: software
           mountpoint: /software

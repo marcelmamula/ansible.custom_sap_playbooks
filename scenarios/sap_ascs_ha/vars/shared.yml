@@ -40,9 +40,9 @@ sap_swpm_fqdn: "{{ ansible_domain }}"
 sap_swpm_update_etchosts: 'false'
 
 # SWPM - dynamic variables
-sap_swpm_ascs_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ascs[0] | default(none) }}ha"
-sap_swpm_ers_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ers[0] | default(none) }}ha"
 sap_swpm_sid: "{{ sap_system_sid }}"
+sap_swpm_ascs_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ascs[0] }}ha"
+sap_swpm_ers_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ers[0] }}ha"
 sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
 sap_swpm_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
 
@@ -63,12 +63,21 @@ sap_swpm_sapadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3000"
 sap_swpm_sapsys_gid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
 sap_swpm_sidadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
 
+# SAP Instance Profile details for sap_ha_pacemaker_cluster and installation detection
+sap_profile_name_ascs:
+  "{{ sap_system_sid | upper }}_ASCS{{ sap_swpm_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"
+sap_profile_path_ascs:
+  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_ascs }}"
+
+sap_profile_name_ers:
+  "{{ sap_system_sid | upper }}_ERS{{ sap_swpm_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"
+sap_profile_path_ers:
+  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_ers }}"
+
 
 # Dictionary with SWPM details for each host
 sap_swpm_templates_install_dictionary:
   sap_nwas_abap_distributed_nwas_ascs_ha:
-
-    # Product ID for New Installation
     sap_swpm_product_catalog_id: NW_ABAP_ASCS:NW750.HDB.ABAPHA
 
     sap_swpm_inifile_list:
@@ -88,20 +97,8 @@ sap_swpm_templates_install_dictionary:
     sap_swpm_inifile_dictionary:
       sap_swpm_install_saphostagent: 'true'
 
-    software_files_wildcard_list:
-      - 'SAPCAR*'
-      - 'SWPM10*'
-      - 'igsexe_*'
-      - 'igshelper_*'
-      - 'SAPEXE_*'
-      - 'SAPEXEDB_*'
-      - 'SUM*'
-      - 'SAPHOSTAGENT*'
-
 
   sap_nwas_abap_distributed_nwas_ers_ha:
-
-    # Product ID for New Installation
     sap_swpm_product_catalog_id: NW_ERS:NW750.HDB.ABAPHA
 
     sap_swpm_inifile_list:
@@ -114,15 +111,6 @@ sap_swpm_templates_install_dictionary:
     sap_swpm_inifile_dictionary:
       sap_swpm_install_saphostagent: 'true'
 
-    software_files_wildcard_list:
-      - 'SAPCAR*'
-      - 'SWPM10*'
-      - 'igsexe_*'
-      - 'igshelper_*'
-      - 'SAPEXE_*' # Kernel Part I (754)
-      - 'SAPEXEDB_*' # Kernel Part I (754)
-      - 'SUM*'
-      - 'SAPHOSTAGENT*'
 
 # DEBUG: Flag to disable SAPHanaSR-angi detection and use Classic
 # sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: false
