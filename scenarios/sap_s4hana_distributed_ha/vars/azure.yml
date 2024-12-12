@@ -1,9 +1,6 @@
 ---
 # Platform and Scenario specific variables
 
-# Image from Image dictionary
-sap_vm_provision_msazure_vm_host_os_image: "sles-15-sp5-sap-byos"
-
 # NFS Software source
 sap_software_nfs_sources:
   db: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.file.core.windows.net:/nfs/software/sap_s4hana_db"
@@ -13,18 +10,18 @@ sap_software_nfs_sources:
 sap_vm_provision_nfs_mount_point: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.file.core.windows.net:/nfs/"
 sap_vm_provision_nfs_mount_point_separate_sap_transport_dir: "{{ sap_vm_provision_nfs_mount_point }}"
 sap_vm_provision_nfs_mount_point_type: nfs4
-sap_vm_provision_nfs_mount_point_opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,acl
+sap_vm_provision_nfs_mount_point_opts: vers=4.1,hard,timeo=600,retrans=2,acl
 
 # HA Cluster Virtual IP - must be within the VNet Subnet CIDR Range attached to the Load Balancer
-sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.202/32"
-sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.203/32"
+sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.202/32"
+sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.203/32"
 sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "10.10.10.211/32"
 
 # Variables for sap_ha_pacemaker_cluster
 sap_ha_pacemaker_cluster_msazure_subscription_id: "{{ sap_vm_provision_msazure_subscription_id }}"
 sap_ha_pacemaker_cluster_msazure_resource_group: "{{ sap_vm_provision_msazure_resource_group_name }}"
-sap_vm_provision_ha_vip_nwas_abap_ascs: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address }}"
-sap_vm_provision_ha_vip_nwas_abap_ers: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address }}"
+sap_vm_provision_ha_vip_nwas_abap_ascs: "{{ sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address }}"
+sap_vm_provision_ha_vip_nwas_abap_ers: "{{ sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address }}"
 sap_vm_provision_ha_vip_hana_primary: "{{ sap_ha_pacemaker_cluster_vip_hana_primary_ip_address }}"
 sap_ha_pacemaker_cluster_vip_client_interface: 'eth0'
 
@@ -113,7 +110,7 @@ sap_vm_provision_msazure_vm_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
 
       # Both ASCS and ERS NFS have to be present if Simple Mount is used
       sap_storage_setup_host_type:
@@ -149,7 +146,7 @@ sap_vm_provision_msazure_vm_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+      sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
 
       # Both ASCS and ERS NFS have to be present if Simple Mount is used
       sap_storage_setup_host_type:
@@ -185,7 +182,7 @@ sap_vm_provision_msazure_vm_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_pas_instance_nr: "{{ sap_system_nwas_abap_pas_instance_nr }}"
+      sap_storage_setup_nwas_abap_pas_instance_nr: "{{ sap_system_nwas_pas_instance_nr }}"
 
       sap_storage_setup_host_type:
         - nwas_abap_pas
@@ -224,7 +221,7 @@ sap_vm_provision_msazure_vm_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_aas_instance_nr: "{{ sap_system_nwas_abap_aas_instance_nr }}"
+      sap_storage_setup_nwas_abap_aas_instance_nr: "{{ sap_system_nwas_aas_instance_nr }}"
 
       sap_storage_setup_host_type:
         - nwas_abap_aas

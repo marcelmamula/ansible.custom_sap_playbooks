@@ -17,8 +17,8 @@
     - name: Create dynamic inventory groups per sap_host_type  # noqa: jinja[spacing]
       ansible.builtin.add_host:
         name: "{{ item }}"
-        group: "{{ vars['sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary']
-          [sap_vm_provision_host_specification_plan][item].sap_host_type }}"
+        group: "{{ 'nwas_scs' if (__group == 'nwas_ascs' and sap_system_nwas_scs_instance_nr is defined
+          and sap_system_nwas_scs_instance_nr | length > 0) else __group }}"
         ansible_host: "{{ item }}.{{ sap_vm_provision_dns_root_domain }}"
         # ansible_user: "{{ 'azureadmin' if sap_vm_provision_iac_platform == 'msazure_vm' else 'root' }}"
         ansible_user: "root"
@@ -30,7 +30,9 @@
           -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
       loop:
         "{{ lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys() }}"
-
+      vars:
+        __group: "{{ vars['sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary']
+          [sap_vm_provision_host_specification_plan][item].sap_host_type }}"
 
 - name: Block for dynamic inventory creation - SAP HANA Scale-Out
   when: sap_vm_provision_calculate_sap_hana_scaleout_active_coordinator is defined
@@ -92,3 +94,23 @@
           -p {{ sap_vm_provision_bastion_ssh_port }} -i {{ sap_vm_provision_ssh_bastion_private_key_file_path }}
           -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
       loop: "{{ groups['sap_vm_provision_target_inventory_group'] }}"
+
+
+- name: Create group nwas_ascs_ers for ASCS/ERS cluster
+  ansible.builtin.add_host:
+    name: "{{ item }}"
+    group: 'nwas_ascs_ers'
+  loop: "{{ groups['nwas_ascs'] + groups['nwas_ers'] }}"
+  when:
+    - groups['nwas_ascs'] | d([]) | length == 1
+    - groups['nwas_ers'] | d([]) | length == 1
+
+
+- name: Create group nwas_scs_ers for SCS/ERS cluster
+  ansible.builtin.add_host:
+    name: "{{ item }}"
+    group: 'nwas_scs_ers'
+  loop: "{{ groups['nwas_scs'] + groups['nwas_ers'] }}"
+  when:
+    - groups['nwas_scs'] | d([]) | length == 1
+    - groups['nwas_ers'] | d([]) | length == 1

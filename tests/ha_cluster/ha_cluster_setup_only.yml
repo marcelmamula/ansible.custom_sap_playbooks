@@ -1,0 +1,26 @@
+---
+# This Ansible playbook is only for direct testing of ha_cluster role on AWS.
+
+- name: Ansible Play to create dynamic inventory group
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Create dynamic inventory group
+      ansible.builtin.include_tasks:
+        file: ../../tasks/prepare_inventory.yml
+
+
+- name: Setup dummy cluster using ha_cluster role
+  hosts: nwas_ascs_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: true
+  tasks:
+
+    - name: Load cluster variables
+      ansible.builtin.include_vars: "cluster.yml"
+
+    - name: Execute ha_cluster role
+      ansible.builtin.import_role:
+        name: "fedora.linux_system_roles.ha_cluster"

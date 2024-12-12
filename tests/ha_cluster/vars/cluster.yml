@@ -1,0 +1,275 @@
+---
+# Variables for creation of dummy cluster
+ha_cluster_cluster_name: dummy
+ha_cluster_hacluster_password: 'clusterpass'
+
+ha_cluster_cluster_properties:
+  - attrs:
+      - name: stonith-enabled
+        value: true
+      - name: stonith-timeout
+        value: 900
+      - name: concurrent-fencing
+        value: true
+
+ha_cluster_resource_defaults:
+  meta_attrs:
+    - attrs:
+        - name: resource-stickiness
+          value: 1
+        - name: migration-threshold
+          value: 3
+
+ha_cluster_resource_operation_defaults:
+  meta_attrs:
+    - attrs:
+        - name: timeout
+          value: 600
+        - name: record-pending
+          value: true
+
+ha_cluster_totem:
+  options:
+    - name: token
+      value: 30000
+    - name: token_retransmits_before_loss_const
+      value: 10
+    - name: join
+      value: 60
+    - name: consensus
+      value: 36000
+    - name: max_messages
+      value: 20
+    - name: clear_node_high_bit
+      value: 'yes'
+
+ha_cluster_resource_primitives:
+  - agent: stonith:external/ec2
+    id: rsc_fence_aws_1
+    instance_attrs:
+      - attrs:
+          - name: pcmk_delay_max
+            value: 30
+          - name: tag
+            value: pacemaker
+  - agent: stonith:external/ec2
+    id: rsc_fence_aws_2
+    instance_attrs:
+      - attrs:
+          - name: pcmk_delay_max
+            value: 30
+          - name: tag
+            value: pacemaker
+  - agent: ocf:heartbeat:IPaddr2
+    id: rsc_vip_ipaddr_1
+    instance_attrs:
+      - attrs:
+          - name: ip
+            value: "192.168.10.10"
+          - name: nic
+            value: eth0
+          - name: cidr_netmask
+            value: 32
+  - agent: ocf:heartbeat:IPaddr2
+    id: rsc_vip_ipaddr_2
+    instance_attrs:
+      - attrs:
+          - name: ip
+            value: "192.168.10.11"
+          - name: nic
+            value: eth0
+          - name: cidr_netmask
+            value: 32
+
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy_cloned
+    operations:
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 30
+
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy_hc1node1_1
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy_hc1node1_2
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy_hc1node2
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy1
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy5
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy6
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy7
+  - agent: ocf:pacemaker:Dummy
+    id: rsc_dummy8
+
+  - agent: anything
+    id: rsc_health_check_1
+    instance_attrs:
+      - attrs:
+          - name: binfile
+            value: "/usr/bin/socat"
+          - name: cmdline_options
+            value: "-U TCP-LISTEN:62620,backlog=10,fork,reuseaddr /dev/null"
+    meta_attrs:
+      - attrs:
+          - name: target-role
+            value: Started
+    operations:
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 30
+          - name: timeout
+            value: 60
+  - agent: anything
+    id: rsc_health_check_2
+    instance_attrs:
+      - attrs:
+          - name: binfile
+            value: "/usr/bin/socat"
+          - name: cmdline_options
+            value: "-U TCP-LISTEN:62621,backlog=10,fork,reuseaddr /dev/null"
+    meta_attrs:
+      - attrs:
+          - name: target-role
+            value: Started
+    operations:
+      - action: monitor
+        attrs:
+          - name: interval
+            value: 30
+          - name: timeout
+            value: 60
+
+ha_cluster_resource_groups:
+  - id: grp_vip1_healthcheck1
+    meta_attrs:
+      - attrs:
+          - name: resource-stickiness
+            value: '3000'
+    resource_ids:
+      - rsc_vip_ipaddr_1
+      - rsc_health_check_1
+  - id: grp_vip2_healthcheck2
+    meta_attrs:
+      - attrs:
+          - name: resource-stickiness
+            value: '4000'
+    resource_ids:
+      - rsc_vip_ipaddr_2
+      - rsc_health_check_2
+
+
+ha_cluster_constraints_colocation:
+  - id: col_vip1_separate_vip2
+    options:
+      - name: score
+        value: -5000
+    resource_follower:
+      id: grp_vip2_healthcheck2
+    resource_leader:
+      id: grp_vip1_healthcheck1
+      role: started
+  - resource_sets:
+      - resource_ids:
+          - rsc_dummy5
+          - rsc_dummy6
+        options:
+          - name: require-all
+            value: "true"
+          - name: sequential
+            value: "false"
+      - resource_ids:
+          - rsc_dummy7
+          - rsc_dummy8
+        options:
+          - name: require-all
+            value: "false"
+          - name: sequential
+            value: "true"
+
+ha_cluster_constraints_order:
+  - id: ord_grp2_dummy1
+    options:
+      - name: symmetrical
+        value: 'false'
+      - name: kind
+        value: Optional
+    resource_first:
+      id: grp_vip2_healthcheck2
+      role: started
+    resource_then:
+      id: rsc_dummy1
+  - resource_sets:
+      - id: set_ord_dummy8_dummy7
+        resource_ids:
+          - rsc_dummy8
+          - rsc_dummy7
+        options:
+          - name: require-all
+            value: "false"
+          - name: sequential
+            value: "false"
+
+ha_cluster_constraints_location:
+  - resource:
+      id: rsc_dummy_hc1node2
+    node: hc1node2
+    options:
+      - name: score
+        value: 5000
+  - resource:
+      id: rsc_dummy_hc1node1_1
+      role: Started
+    rule: '#uname eq hc1node1'
+    id: loc_dummy_on_hc1node1
+    options:
+      - name: score
+        value: inf
+  - resource:
+      pattern: dummy_hc1node1_1
+      role: Started
+    node: hc1node2
+    id: loc_dummy_on_hc1node1
+    options:
+      - name: score
+        value: -inf
+
+ha_cluster_resource_clones:
+  - resource_id: rsc_dummy_cloned
+    promotable: true
+    meta_attrs:
+      - attrs:
+          - name: clone-max
+            value: '2'
+          - name: clone-node-max
+            value: '1'
+
+ha_cluster_constraints_ticket:
+  # simple constraint
+  - resource:
+      id: rsc_dummy5
+    ticket: ticket1
+    options:
+      - name: loss-policy
+        value: stop
+  # set constraint
+  - resource_sets:
+      - resource_ids:
+          - rsc_dummy7
+          - rsc_dummy8
+    ticket: ticket2
+    options:
+      - name: loss-policy
+        value: stop
+
+ha_cluster_stonith_levels:
+  - level: 1
+    target: hc1node1
+    resource_ids:
+      - rsc_fence_aws_1
+      - rsc_fence_aws_2

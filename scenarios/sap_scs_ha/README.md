@@ -1,8 +1,10 @@
-# SAP Netweaver ASCS ERS cluster
+# SAP Netweaver SCS ERS cluster
+
+# Disclaimer: Experimental playbook, which requires provisioning using ASCS inputs, as `community.sap_infrastructure` does not support JAVA SCS yet.
 
 ## Scenario specifics:
 1. Two server cluster with minimal footprint for test purposes
-2. SAP Netweaver ASCS installed on first server
+2. SAP Netweaver SCS installed on first server
 3. SAP Netweaver ERS installed on second server
 4. Pacemaker cluster configured
     - [Simple Mount cluster](https://documentation.suse.com/sbp/sap-15/html/SAP-S4HA10-setupguide-simplemount-sle15/) is configured by default on supported OS.
@@ -12,8 +14,8 @@
 ## Available cloud configurations
 Scenario was tested with following cloud platforms:
 - AWS
-- Google Cloud
-- MS Azure
+- ~~Google Cloud~~
+- ~~MS Azure~~
 
 ## Execution runtime
 End to end execution can be completed in approximately 30 minutes using predefined host configuration.

@@ -17,6 +17,7 @@ sap_vm_provision_gcp_credentials_json: "ENTER_STRING_VALUE_HERE"  # Path to GCP 
 
 # Infrastructure details
 sap_vm_provision_iac_platform: "gcp_ce_vm"  # Do not change
+sap_vm_provision_iac_type: "ansible"
 sap_vm_provision_gcp_project: "ENTER_STRING_VALUE_HERE"
 sap_vm_provision_gcp_region: "{{ sap_vm_provision_gcp_region_zone[:-2] }}"  # Region example: europe-west1
 sap_vm_provision_gcp_region_zone: "ENTER_STRING_VALUE_HERE"  # Region zone example: europe-west1-b
@@ -33,6 +34,9 @@ sap_vm_provision_ssh_host_private_key_file_path: "ENTER_STRING_VALUE_HERE"  # SS
 # SAP HA Pacemaker specific variables for GCP
 sap_ha_pacemaker_cluster_gcp_project: "{{ sap_vm_provision_gcp_project }}"
 sap_ha_pacemaker_cluster_gcp_region_zone: "{{ sap_vm_provision_gcp_region_zone }}"
+
+# Image from Image dictionary
+sap_vm_provision_gcp_ce_vm_host_os_image: "sles-15-sp6-sap-byos"
 
 # Image dictionary
 sap_vm_provision_gcp_ce_vm_host_os_image_dictionary:

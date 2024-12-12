@@ -1,9 +1,6 @@
 ---
 # Platform and Scenario specific variables
 
-# Image from Image dictionary
-sap_vm_provision_msazure_vm_host_os_image: "sles-15-sp5-sap-byos"
-
 # NFS filesystem for SAP Software
 sap_software_nfs_sources:
   db: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.file.core.windows.net:/nfs/software/sap_hana_ha"

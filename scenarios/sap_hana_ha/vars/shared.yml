@@ -12,7 +12,6 @@ sap_domain: "{{ ansible_domain }}"
 sap_ip: "{{ ansible_default_ipv4.address }}"
 
 # Provisioning variables for sap_infrastructure
-sap_vm_provision_iac_type: "ansible"
 sap_vm_provision_ha_load_balancer_name_hana: "{{ sap_system_hana_db_sid | lower }}-lb-sap-ha-hana"
 
 # NFS filesystem details where SAP Software is located
@@ -22,8 +21,7 @@ sap_software_nfs_db:
   mount: /software_db  # Specify mount for NFS filesystem
   source: "{{ sap_software_nfs_sources.db }}"  # NFS source defined in platform vars
   type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
-#  options: "{{ sap_software_nfs_sources.options |
-#   d('nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev') }}"  # NFS mount options
+  options: "{{ sap_software_nfs_sources.options | d('vers=4.1,hard,timeo=600,retrans=2,acl') }}"  # NFS mount options
 
 # Configuration for preconfigure roles (general, hana, netweaver)
 sap_general_preconfigure_modify_etc_hosts: false

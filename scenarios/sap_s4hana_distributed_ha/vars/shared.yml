@@ -5,10 +5,10 @@
 sap_system_sid: "ENTER_STRING_VALUE_HERE"  # Example: "PR2"
 sap_system_hana_db_sid: "ENTER_STRING_VALUE_HERE"  # Example: "PR2"
 sap_system_hana_db_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "90"
-sap_system_nwas_abap_ascs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
-sap_system_nwas_abap_ers_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "10"
-sap_system_nwas_abap_pas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "01"
-sap_system_nwas_abap_aas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "11"
+sap_system_nwas_ascs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
+sap_system_nwas_ers_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "10"
+sap_system_nwas_pas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "01"
+sap_system_nwas_aas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "11"
 sap_swpm_db_host: "ENTER_STRING_VALUE_HERE"  # Example: "pr2hana"
 
 # SAP System - dynamic assignment of variables
@@ -17,7 +17,6 @@ sap_domain: "{{ ansible_domain }}"
 sap_ip: "{{ ansible_default_ipv4.address }}"
 
 # Provisioning variables for sap_infrastructure
-sap_vm_provision_iac_type: "ansible"
 sap_vm_provision_ha_load_balancer_name_hana: "{{ sap_system_sid | lower }}-lb-sap-ha-hana"
 sap_vm_provision_ha_load_balancer_name_nwas: "{{ sap_system_sid | lower }}-lb-sap-ha-nwas"
 
@@ -28,10 +27,12 @@ sap_software_nfs_app:
   mount: /software_app  # Specify mount for NFS filesystem
   source: "{{ sap_software_nfs_sources.app }}"  # NFS source defined in platform vars
   type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+  options: "{{ sap_software_nfs_sources.options | d('vers=4.1,hard,timeo=600,retrans=2,acl') }}"  # NFS mount options
 sap_software_nfs_db:
   mount: /software_db # Specify mount for NFS filesystem
   source: "{{ sap_software_nfs_sources.db }}" # NFS source defined in platform vars
   type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+  options: "{{ sap_software_nfs_sources.options | d('vers=4.1,hard,timeo=600,retrans=2,acl') }}"  # NFS mount options
 
 # Configuration of Ansible Roles for preconfigure SAP (general, hana, netweaver)
 sap_general_preconfigure_modify_etc_hosts: false
@@ -57,10 +58,10 @@ sap_swpm_ascs_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_as
 sap_swpm_ers_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ers[0] }}ha"
 sap_swpm_pas_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_pas[0] }}"
 sap_swpm_aas_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_aas[0] }}"
-sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
-sap_swpm_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
-sap_swpm_pas_instance_nr: "{{ sap_system_nwas_abap_pas_instance_nr }}"
-sap_swpm_aas_instance_nr: "{{ sap_system_nwas_abap_aas_instance_nr }}"
+sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+sap_swpm_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
+sap_swpm_pas_instance_nr: "{{ sap_system_nwas_pas_instance_nr }}"
+sap_swpm_aas_instance_nr: "{{ sap_system_nwas_aas_instance_nr }}"
 sap_swpm_db_sid: "{{ sap_system_hana_db_sid }}"
 sap_swpm_db_instance_nr: "{{ sap_system_hana_db_instance_nr }}"
 
@@ -217,7 +218,7 @@ sap_swpm_templates_install_dictionary:
       sap_swpm_install_saphostagent: 'true'
 
 # DEBUG: Flag to disable SAPHanaSR-angi detection and use Classic
-# sap_ha_pacemaker_cluster_nwas_abap_ascs_ers_simple_mount: false
+# sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: false
 
 # DEBUG: Flag for sap_ha_pacemaker_cluster troubleshooting
 # __sap_ha_pacemaker_cluster_no_log: false

@@ -36,7 +36,7 @@
         sidadm: "{{ (sap_system_sid | lower + 'adm') if sap_system_sid is defined and sap_system_sid | length > 0 else omit }}"
         sidadm_hana: "{{ (sap_system_hana_db_sid | lower ~ 'adm') if sap_system_hana_db_sid is defined and sap_system_hana_db_sid | length > 0 else omit }}"
         # Ensure that python interpreter points to python3
-        ansible_python_interpreter: /usr/bin/python3
+        ansible_python_interpreter: "{{ '/usr/bin/python3' if ansible_os_family == 'Suse' else omit }}"
 
 
 # Google DNS is not refreshing cache quick enough during frequent rebuilds.
@@ -72,8 +72,8 @@
       vars:  # noqa jinja[spacing]
         sap_storage_setup_sid: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
          [inventory_hostname_short].sap_storage_setup_sid | default('') }}"
-        sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
-        sap_storage_setup_nwas_abap_pas_instance_nr: "{{ sap_system_nwas_abap_pas_instance_nr }}"
+        sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+        sap_storage_setup_nwas_abap_pas_instance_nr: "{{ sap_system_nwas_pas_instance_nr }}"
         sap_storage_setup_host_type: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
          [inventory_hostname_short].sap_storage_setup_host_type | list }}"
       when:
@@ -100,15 +100,17 @@
     - name: Mount network share - HANA
       ansible.posix.mount:
         path: "{{ sap_software_nfs_db.mount }}"
-        src: '{{ sap_software_nfs_db.source }}'
+        src: "{{ sap_software_nfs_db.source }}"
         fstype: "{{ sap_software_nfs_db.type }}"
+        opts: "{{ sap_software_nfs_db.options }}"
         state: mounted
 
     - name: Mount network share - Application
       ansible.posix.mount:
         path: "{{ sap_software_nfs_app.mount }}"
-        src: '{{ sap_software_nfs_app.source }}'
+        src: "{{ sap_software_nfs_app.source }}"
         fstype: "{{ sap_software_nfs_app.type }}"
+        opts: "{{ sap_software_nfs_app.options }}"
         state: mounted
 
 

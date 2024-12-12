@@ -16,14 +16,20 @@ sap_vm_provision_nfs_mount_point_type: nfs4
 sap_vm_provision_nfs_mount_point_opts: vers=4.1,hard,timeo=600,retrans=2,acl
 
 # HA Cluster Virtual IP - must be outside of VPC Subnet CIDR Range
-sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.2.20/32"
+sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.2.20/32"
 sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.2.21/32"
+# Workaround for unsupported JAVA SCS in community.sap_infrastructure
+sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address: "{{ sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address }}"
 
 # Variables for sap_ha_pacemaker_cluster
 sap_ha_pacemaker_cluster_aws_region: "{{ sap_vm_provision_aws_vpc_availability_zone[:-1] }}"
 sap_ha_pacemaker_cluster_aws_access_key_id: "{{ sap_vm_provision_aws_access_key }}"
 sap_ha_pacemaker_cluster_aws_secret_access_key: "{{ sap_vm_provision_aws_secret_access_key }}"
-sap_vm_provision_ha_vip_nwas_abap_ascs: "{{ sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address }}"
+
+sap_vm_provision_ha_vip_nwas_java_scs: "{{ sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address }}"
+sap_vm_provision_ha_vip_nwas_java_ers: "{{ sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address }}"
+# Workaround for unsupported JAVA SCS in community.sap_infrastructure
+sap_vm_provision_ha_vip_nwas_abap_ascs: "{{ sap_ha_pacemaker_cluster_vip_nwas_scs_ip_address }}"
 sap_vm_provision_ha_vip_nwas_abap_ers: "{{ sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address }}"
 
 
@@ -33,18 +39,19 @@ sap_vm_provision_host_specification_plan: "sandbox"
 # sap_vm_provision - host specification dictionary
 sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
   sandbox:
-    ae1ascs: # Hostname, must be 13 characters or less
+    je1scs: # Hostname, must be 13 characters or less
+      # Workaround for unsupported JAVA SCS in community.sap_infrastructure
       sap_host_type: nwas_ascs
       virtual_machine_profile: "m5a.xlarge"  # m5a.xlarge: 4CPU 16GB RAM
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+      sap_storage_setup_nwas_java_scs_instance_nr: "{{ sap_system_nwas_scs_instance_nr }}"
 
-      # Both ASCS and ERS NFS have to be present if Simple Mount is used
+      # Both SCS and ERS NFS have to be present if Simple Mount is used
       sap_storage_setup_host_type:
-        - nwas_abap_ascs
-        - nwas_abap_ers
+        - nwas_java_scs
+        - nwas_java_ers
 
       storage_definition:
         - name: usr_sap
@@ -69,18 +76,18 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
           nfs_mount_options: "{{ sap_vm_provision_nfs_mount_point_opts | default('') }}"
 
 
-    ae1ers: # Hostname, must be 13 characters or less
+    je1ers: # Hostname, must be 13 characters or less
       sap_host_type: nwas_ers
       virtual_machine_profile: "m5a.xlarge"  # m5a.xlarge: 4CPU 16GB RAM
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
+      sap_storage_setup_nwas_java_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
 
-      # Both ASCS and ERS NFS have to be present if Simple Mount is used
+      # Both SCS and ERS NFS have to be present if Simple Mount is used
       sap_storage_setup_host_type:
-        - nwas_abap_ers
-        - nwas_abap_ascs
+        - nwas_java_ers
+        - nwas_java_scs
 
       storage_definition:
         - name: usr_sap

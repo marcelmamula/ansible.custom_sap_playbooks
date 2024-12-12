@@ -13,7 +13,7 @@
 
 
 - name: Ansible Play to unregister BYOS servers
-  hosts: hana_primary, hana_secondary, nwas_ascs, nwas_ers, nwas_pas, nwas_aas
+  hosts: hana_primary, hana_secondary, nwas_ascs, nwas_scs, nwas_ers, nwas_pas, nwas_aas
   become: true
   any_errors_fatal: true
   max_fail_percentage: 0

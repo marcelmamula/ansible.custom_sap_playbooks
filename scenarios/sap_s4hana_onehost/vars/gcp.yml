@@ -1,9 +1,6 @@
 ---
 # Platform and Scenario specific variables
 
-# Image from Image dictionary
-sap_vm_provision_gcp_ce_vm_host_os_image: "sles-15-sp5-sap-byos"
-
 # NFS Software source
 sap_software_nfs_sources:
   db: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "nfs.domain.com:/software/sap_s4hana_db"
@@ -21,7 +18,7 @@ sap_vm_provision_gcp_ce_vm_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
 
       sap_storage_setup_host_type:
         - hana_primary

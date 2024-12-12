@@ -1,6 +1,8 @@
 # Dedicated task to register and unregister OS when BYOS image is used
 # Expected boolean variable: os_registered
 
+# SUSEConnect and registercloudguest packages are present in Cloud images.
+
 - name: Block to execute only when BYOS image is used
   when:
     - sap_vm_provision_os_online_registration_passcode is defined and sap_vm_provision_os_online_registration_passcode | length > 0
@@ -10,16 +12,29 @@
       or (sap_vm_provision_ibmcloud_vs_host_os_image is defined and 'byos' in (sap_vm_provision_ibmcloud_vs_host_os_image | default('')))"
   block:
 
+    - name: Get SUSEConnect status
+      ansible.builtin.command:
+        cmd: suseconnect -l | grep Basesystem
+      register: __suseconnect_status
+      ignore_errors: true
+      failed_when: false
+      changed_when: false
+      no_log: true
+
     - name: Register SLES OS using SUSEConnect
       ansible.builtin.command:
         cmd: SUSEConnect -r "{{ sap_vm_provision_os_online_registration_passcode }}"
       changed_when: true
       no_log: true
-      when: os_registered
+      when:
+        - os_registered
+        - __suseconnect_status is defined and '(Activated)' not in __suseconnect_status.stdout
 
     - name: Unregister SLES OS using registercloudguest
       ansible.builtin.command:
         cmd: registercloudguest --clean
       changed_when: true
       no_log: true
-      when: not os_registered
+      when:
+        - not os_registered
+        - __suseconnect_status is defined and '(Activated)' in __suseconnect_status.stdout

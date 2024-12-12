@@ -1,9 +1,6 @@
 ---
 # Platform and Scenario specific variables
 
-# Image from Image dictionary
-sap_vm_provision_aws_ec2_vs_host_os_image: "sles4sap-15-5-byos"
-
 # Custom override for HA IAM resources
 sap_vm_provision_aws_ha_iam_role: "HA-Role-Pacemaker-{{ sap_system_sid }}"
 sap_vm_provision_aws_ha_iam_instance_profile: "HA-Role-Pacemaker-{{ sap_system_sid }}-profile"
@@ -17,19 +14,19 @@ sap_software_nfs_sources:
 sap_vm_provision_nfs_mount_point: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "fs-00000000000000000.efs.eu-central-1.amazonaws.com:/"
 sap_vm_provision_nfs_mount_point_separate_sap_transport_dir: "{{ sap_vm_provision_nfs_mount_point }}"
 sap_vm_provision_nfs_mount_point_type: nfs4
-sap_vm_provision_nfs_mount_point_opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,acl
+sap_vm_provision_nfs_mount_point_opts: vers=4.1,hard,timeo=600,retrans=2,acl
 
 # HA Cluster Virtual IP - must be outside of VPC Subnet CIDR Range
-sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.2.10/32"
-sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.2.11/32"
+sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.2.10/32"
+sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.2.11/32"
 sap_ha_pacemaker_cluster_vip_hana_primary_ip_address: "ENTER_STRING_VALUE_HERE"  # Format: "192.168.1.91/32"
 
 # Variables for sap_ha_pacemaker_cluster
 sap_ha_pacemaker_cluster_aws_region: "{{ sap_vm_provision_aws_vpc_availability_zone[:-1] }}"
 sap_ha_pacemaker_cluster_aws_access_key_id: "{{ sap_vm_provision_aws_access_key }}"
 sap_ha_pacemaker_cluster_aws_secret_access_key: "{{ sap_vm_provision_aws_secret_access_key }}"
-sap_vm_provision_ha_vip_nwas_abap_ascs: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ascs_ip_address }}"
-sap_vm_provision_ha_vip_nwas_abap_ers: "{{ sap_ha_pacemaker_cluster_vip_nwas_abap_ers_ip_address }}"
+sap_vm_provision_ha_vip_nwas_abap_ascs: "{{ sap_ha_pacemaker_cluster_vip_nwas_ascs_ip_address }}"
+sap_vm_provision_ha_vip_nwas_abap_ers: "{{ sap_ha_pacemaker_cluster_vip_nwas_ers_ip_address }}"
 sap_vm_provision_ha_vip_hana_primary: "{{ sap_ha_pacemaker_cluster_vip_hana_primary_ip_address }}"
 
 
@@ -109,7 +106,7 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
 
       # Both ASCS and ERS NFS have to be present if Simple Mount is used
       sap_storage_setup_host_type:
@@ -145,7 +142,7 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+      sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
 
       # Both ASCS and ERS NFS have to be present if Simple Mount is used
       sap_storage_setup_host_type:
@@ -181,7 +178,7 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_pas_instance_nr: "{{ sap_system_nwas_abap_pas_instance_nr }}"
+      sap_storage_setup_nwas_abap_pas_instance_nr: "{{ sap_system_nwas_pas_instance_nr }}"
 
       sap_storage_setup_host_type:
         - nwas_abap_pas
@@ -219,7 +216,7 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_aas_instance_nr: "{{ sap_system_nwas_abap_aas_instance_nr }}"
+      sap_storage_setup_nwas_abap_aas_instance_nr: "{{ sap_system_nwas_aas_instance_nr }}"
 
       sap_storage_setup_host_type:
         - nwas_abap_aas

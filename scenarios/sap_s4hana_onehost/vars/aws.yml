@@ -1,9 +1,6 @@
 ---
 # Platform and Scenario specific variables
 
-# Image from Image dictionary
-sap_vm_provision_aws_ec2_vs_host_os_image: "sles4sap-15-5-byos"
-
 # NFS Software source
 sap_software_nfs_sources:
   db: "ENTER_STRING_VALUE_HERE"  # Enter NFS filesystem path, example: "fs-00000000000000000.efs.eu-central-1.amazonaws.com:/sap_s4hana_db"
@@ -21,7 +18,7 @@ sap_vm_provision_aws_ec2_vs_host_specifications_dictionary:
       disable_ip_anti_spoofing: true
 
       sap_storage_setup_sid: "{{ sap_system_sid }}"
-      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+      sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
 
       sap_storage_setup_host_type:
         - hana_primary

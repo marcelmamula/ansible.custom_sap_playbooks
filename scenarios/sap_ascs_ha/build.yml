@@ -36,7 +36,8 @@
         sidadm: "{{ (sap_system_sid | lower + 'adm') if sap_system_sid is defined and sap_system_sid | length > 0 else omit }}"
         sidadm_hana: "{{ (sap_system_hana_db_sid | lower ~ 'adm') if sap_system_hana_db_sid is defined and sap_system_hana_db_sid | length > 0 else omit }}"
         # Ensure that python interpreter points to python3
-        ansible_python_interpreter: /usr/bin/python3
+        ansible_python_interpreter: "{{ '/usr/bin/python3' if ansible_os_family == 'Suse' else omit }}"
+
 
 # Google DNS is not refreshing cache quick enough during frequent rebuilds.
 - name: Ansible Play to flush DNS on Google Cloud
@@ -75,8 +76,8 @@
       vars:  # noqa jinja[spacing]
         sap_storage_setup_sid: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
           [inventory_hostname_short].sap_storage_setup_sid | default('') }}"
-        sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
-        sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+        sap_storage_setup_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+        sap_storage_setup_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
         sap_storage_setup_host_type: "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan]
           [inventory_hostname_short].sap_storage_setup_host_type | list }}"
       when:
@@ -94,7 +95,7 @@
   serial: 1
   tasks:
 
-    - name: Cleanup NFS mounts for distribured SAP Netweaver
+    - name: Cleanup NFS mounts for distributed SAP Netweaver
       ansible.builtin.include_tasks:
         file: ../../tasks/nfs_cleanup.yml
 
@@ -117,8 +118,9 @@
     - name: Mount network share
       ansible.posix.mount:
         path: "{{ sap_software_nfs_app.mount }}"
-        src: '{{ sap_software_nfs_app.source }}'
+        src: "{{ sap_software_nfs_app.source }}"
         fstype: "{{ sap_software_nfs_app.type }}"
+        opts: "{{ sap_software_nfs_app.options }}"
         state: mounted
 
 
@@ -189,7 +191,7 @@
         name: community.sap_install.sap_swpm
       vars:
         sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ascs_ha"
-        sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
+        sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
         sap_swpm_virtual_hostname: "{{ sap_swpm_ascs_instance_hostname }}"
       when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
 
@@ -218,7 +220,7 @@
         name: community.sap_install.sap_swpm
       vars:
         sap_swpm_templates_product_input: "{{ sap_swpm_templates_product_input_prefix }}_nwas_ers_ha"
-        sap_swpm_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+        sap_swpm_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
         sap_swpm_virtual_hostname: "{{ sap_swpm_ers_instance_hostname }}"
       when: not sidadm in getent_passwd.keys() or not sap_profile_stat_check.stat.exists
 
@@ -250,8 +252,6 @@
         sap_ha_pacemaker_cluster_host_type:
           - nwas_abap_ascs_ers
 
-        sap_ha_pacemaker_cluster_vip_resource_group_name: vipnwasascs
-
         sap_ha_pacemaker_cluster_storage_definition:
           "{{ host_specifications_dictionary[sap_vm_provision_host_specification_plan][inventory_hostname_short].storage_definition | list }}"
 
@@ -259,16 +259,16 @@
         sap_ha_pacemaker_cluster_storage_nfs_mount_options: defaults,hard,acl
         sap_ha_pacemaker_cluster_storage_nfs_server: "{{ sap_storage_nfs_server | default('') }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_sid: "{{ sap_system_sid | default('') }}"
+        sap_ha_pacemaker_cluster_nwas_sid: "{{ sap_system_sid | default('') }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+        sap_ha_pacemaker_cluster_nwas_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+        sap_ha_pacemaker_cluster_nwas_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name: "{{ sap_profile_name_ascs }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: "{{ sap_profile_path_ascs }}"
+        sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name: "{{ sap_profile_name_ascs }}"
+        sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string: "{{ sap_profile_path_ascs }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name: "{{ sap_profile_name_ers }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: "{{ sap_profile_path_ers }}"
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name: "{{ sap_profile_name_ers }}"
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string: "{{ sap_profile_path_ers }}"
 
 
 - name: Ansible Play for Post-install alterations for Infrastructure Platform

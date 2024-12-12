@@ -5,8 +5,8 @@
 sap_system_sid: "ENTER_STRING_VALUE_HERE"  # Example: "S01"
 sap_system_hana_db_sid: "ENTER_STRING_VALUE_HERE"  # Example: "H01"
 sap_system_hana_db_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "90"
-sap_system_nwas_abap_ascs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
-sap_system_nwas_abap_pas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "01"
+sap_system_nwas_ascs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
+sap_system_nwas_pas_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "01"
 sap_swpm_db_host: "ENTER_STRING_VALUE_HERE"  # Example: s01s4hana
 
 # SAP System - dynamic assignment of variables
@@ -15,7 +15,6 @@ sap_domain: "{{ ansible_domain }}"
 sap_ip: "{{ ansible_default_ipv4.address }}"
 
 # Provisioning variables for sap_infrastructure
-sap_vm_provision_iac_type: "ansible"
 
 # NFS filesystem details where SAP Software is located
 # This scenario is using NFS as source instead of SAP software download using sap_launchpad
@@ -24,10 +23,12 @@ sap_software_nfs_app:
   mount: /software_app  # Specify mount for NFS filesystem
   source: "{{ sap_software_nfs_sources.app }}"  # NFS source defined in platform vars
   type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+  options: "{{ sap_software_nfs_sources.options | d('vers=4.1,hard,timeo=600,retrans=2,acl') }}"  # NFS mount options
 sap_software_nfs_db:
   mount: /software_db  # Specify mount for NFS filesystem
   source: "{{ sap_software_nfs_sources.db }}" # NFS source defined in platform vars
   type: "{{ sap_software_nfs_sources.type | d('nfs4') }}"  # NFS mount type defined in platform vars
+  options: "{{ sap_software_nfs_sources.options | d('vers=4.1,hard,timeo=600,retrans=2,acl') }}"  # NFS mount options
 
 # Configuration of Ansible Roles for preconfigure SAP (general, hana, netweaver)
 sap_general_preconfigure_modify_etc_hosts: false
@@ -49,8 +50,8 @@ sap_swpm_update_etchosts: 'false'
 
 # SWPM - dynamic variables
 sap_swpm_sid: "{{ sap_system_sid }}"
-sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
-sap_swpm_pas_instance_nr: "{{ sap_system_nwas_abap_pas_instance_nr }}"
+sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+sap_swpm_pas_instance_nr: "{{ sap_system_nwas_pas_instance_nr }}"
 sap_swpm_db_sid: "{{ sap_system_hana_db_sid }}"
 sap_swpm_db_instance_nr: "{{ sap_system_hana_db_instance_nr }}"
 

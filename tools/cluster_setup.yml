@@ -10,8 +10,8 @@
         file: ../tasks/prepare_inventory.yml
 
 
-- name: Setup HA cluster - NWAS ASCS/ERS
-  hosts: nwas_ascs, nwas_ers
+- name: Register BYOS OS image before cluster creation
+  hosts: hana_primary, hana_secondary, nwas_ascs, nwas_ers, nwas_scs
   become: true
   any_errors_fatal: true
   max_fail_percentage: 0
@@ -25,51 +25,100 @@
         os_registered: true
 
 
-    - name: Execute Ansible Role sap_ha_pacemaker_cluster
+- name: Setup HA cluster - SAP Netweaver ASCS/ERS
+  hosts: nwas_ascs_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: true
+  tasks:
+
+    - name: Execute Ansible Role sap_ha_pacemaker_cluster  # noqa jinja[spacing]
       ansible.builtin.include_role:
         name: community.sap_install.sap_ha_pacemaker_cluster
       vars:
         sap_ha_pacemaker_cluster_cluster_name: clusterhdb
         sap_ha_pacemaker_cluster_hacluster_user_password: 'clusterpass'
 
-        sap_ha_pacemaker_cluster_create_config_varfile: false
-
         sap_ha_pacemaker_cluster_host_type:
           - nwas_abap_ascs_ers
 
-        sap_ha_pacemaker_cluster_vip_resource_group_name: vipnwasascs
-
-        sap_ha_pacemaker_cluster_storage_definition: "{{ lookup('vars', 'sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary')
+        sap_ha_pacemaker_cluster_storage_definition:
+          "{{ lookup('vars', 'sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary')
           [sap_vm_provision_host_specification_plan][ansible_hostname].storage_definition | list }}"
 
         sap_ha_pacemaker_cluster_storage_nfs_filesytem_type: nfs4
         sap_ha_pacemaker_cluster_storage_nfs_mount_options: defaults,hard,acl
         sap_ha_pacemaker_cluster_storage_nfs_server: "{{ sap_storage_nfs_server | default('') }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_sid: "{{ sap_system_sid | default('') }}"
+        sap_ha_pacemaker_cluster_nwas_sid: "{{ sap_system_sid | default('') }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_instance_nr: "{{ sap_system_nwas_abap_ascs_instance_nr }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ers_instance_nr: "{{ sap_system_nwas_abap_ers_instance_nr }}"
+        sap_ha_pacemaker_cluster_nwas_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+        sap_ha_pacemaker_cluster_nwas_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_instance_name:
-          "{{ sap_system_sid }}_ASCS{{ sap_system_nwas_abap_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ascs_sapinstance_start_profile_string: "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_system_sid
-         }}_ASCS{{ sap_system_nwas_abap_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"  # noqa jinja[spacing]
+        sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_instance_name: "{{ sap_profile_name_ascs }}"
+        sap_ha_pacemaker_cluster_nwas_ascs_sapinstance_start_profile_string: "{{ sap_profile_path_ascs }}"
 
-        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_instance_name:
-          "{{ sap_system_sid }}_ERS{{ sap_system_nwas_abap_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"
-        sap_ha_pacemaker_cluster_nwas_abap_ers_sapinstance_start_profile_string: "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_system_sid
-         }}_ERS{{ sap_system_nwas_abap_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"  # noqa jinja[spacing]
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name: "{{ sap_profile_name_ers }}"
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string: "{{ sap_profile_path_ers }}"
 
         # Ensure that python interpreter points to python3
-        ansible_python_interpreter: /usr/bin/python3
+        ansible_python_interpreter: "{{ '/usr/bin/python3' if ansible_os_family == 'Suse' else omit }}"
+
+        # sap_ha_pacemaker_cluster_create_config_varfile: true
+        # sap_ha_pacemaker_cluster_create_config_dest: "/tmp/ha_cluster_config"
+
+    - name: Get cluster status
+      ansible.builtin.command:
+        cmd: "{{ 'pcs' if ansible_os_family == 'RedHat' else 'crm' }} status"
+      register: cluster_status_output
+      changed_when: false
+
+    - name: Show cluster status
+      ansible.builtin.debug:
+        msg: "{{ cluster_status_output.stdout_lines }}"
 
 
-    - name: Unregister OS for BYOS image
-      ansible.builtin.include_tasks:
-        file: ../tasks/os_register.yml
+- name: Setup HA cluster - SAP Netweaver SCS/ERS
+  hosts: nwas_scs_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: true
+  tasks:
+
+    - name: Execute Ansible Role sap_ha_pacemaker_cluster  # noqa jinja[spacing]
+      ansible.builtin.include_role:
+        name: community.sap_install.sap_ha_pacemaker_cluster
       vars:
-        os_registered: false
+        sap_ha_pacemaker_cluster_cluster_name: clusterhdb
+        sap_ha_pacemaker_cluster_hacluster_user_password: 'clusterpass'
+
+        sap_ha_pacemaker_cluster_host_type:
+          - nwas_java_scs_ers
+
+        sap_ha_pacemaker_cluster_storage_definition:
+          "{{ lookup('vars', 'sap_vm_provision_' + sap_vm_provision_iac_platform + '_host_specifications_dictionary')
+          [sap_vm_provision_host_specification_plan][ansible_hostname].storage_definition | list }}"
+
+        sap_ha_pacemaker_cluster_storage_nfs_filesytem_type: nfs4
+        sap_ha_pacemaker_cluster_storage_nfs_mount_options: defaults,hard,acl
+        sap_ha_pacemaker_cluster_storage_nfs_server: "{{ sap_storage_nfs_server | default('') }}"
+
+        sap_ha_pacemaker_cluster_nwas_sid: "{{ sap_system_sid | default('') }}"
+
+        sap_ha_pacemaker_cluster_nwas_scs_instance_nr: "{{ sap_system_nwas_scs_instance_nr }}"
+        sap_ha_pacemaker_cluster_nwas_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
+
+        sap_ha_pacemaker_cluster_nwas_scs_sapinstance_instance_name: "{{ sap_profile_name_scs }}"
+        sap_ha_pacemaker_cluster_nwas_scs_sapinstance_start_profile_string: "{{ sap_profile_path_scs }}"
+
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_instance_name: "{{ sap_profile_name_ers }}"
+        sap_ha_pacemaker_cluster_nwas_ers_sapinstance_start_profile_string: "{{ sap_profile_path_ers }}"
+
+        # Ensure that python interpreter points to python3
+        ansible_python_interpreter: "{{ '/usr/bin/python3' if ansible_os_family == 'Suse' else omit }}"
+
 
     - name: Get cluster status
       ansible.builtin.command:
@@ -89,12 +138,6 @@
   max_fail_percentage: 0
   gather_facts: true
   tasks:
-
-    - name: Register OS for BYOS image
-      ansible.builtin.include_tasks:
-        file: ../tasks/os_register.yml
-      vars:
-        os_registered: true
 
     - name: Set Ansible Variable for SAP HANA scale-up HA cluster configuration
       ansible.builtin.set_fact:
@@ -129,16 +172,10 @@
 
         sap_ha_pacemaker_cluster_cluster_nodes: "{{ sap_hana_cluster_nodes }}"
         sap_ha_pacemaker_cluster_replication_type: none
-        sap_ha_pacemaker_cluster_vip_resource_group_name: viphdb
 
         # Ensure that python interpreter points to python3
-        ansible_python_interpreter: /usr/bin/python3
+        ansible_python_interpreter: "{{ '/usr/bin/python3' if ansible_os_family == 'Suse' else omit }}"
 
-    - name: Unregister OS for BYOS image
-      ansible.builtin.include_tasks:
-        file: ../tasks/os_register.yml
-      vars:
-        os_registered: false
 
     - name: Get cluster status
       ansible.builtin.command:
@@ -149,3 +186,18 @@
     - name: Show cluster status
       ansible.builtin.debug:
         msg: "{{ cluster_status_output.stdout_lines }}"
+
+
+- name: De-Register BYOS OS image after cluster creation
+  hosts: hana_primary, hana_secondary, nwas_ascs, nwas_ers, nwas_scs
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: true
+  tasks:
+
+    - name: De-Register OS for BYOS image
+      ansible.builtin.include_tasks:
+        file: ../tasks/os_register.yml
+      vars:
+        os_registered: false

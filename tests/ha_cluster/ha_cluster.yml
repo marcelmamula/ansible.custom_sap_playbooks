@@ -1,0 +1,75 @@
+---
+# This Ansible playbook is only for direct testing of ha_cluster role.
+
+- name: Ansible Play to create dynamic inventory group for provisioning
+  hosts: localhost
+  gather_facts: false
+  vars:
+    host_dict: "{{ 'sap_vm_provision_' ~ sap_vm_provision_iac_platform ~ '_host_specifications_dictionary' }}"
+  tasks:
+    - name: Create dynamic inventory group sap_vm_provision_target_inventory_group
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        group: sap_vm_provision_target_inventory_group
+      loop: "{{ lookup('ansible.builtin.vars', host_dict)[sap_vm_provision_host_specification_plan].keys() }}"
+      when: sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
+
+
+- name: Ansible Play to provision hosts
+  hosts: sap_vm_provision_target_inventory_group
+  gather_facts: false
+  tasks:
+
+    - name: Execute Ansible Role sap_vm_provision
+      ansible.builtin.include_role:
+        name: community.sap_infrastructure.sap_vm_provision
+      when: sap_vm_provision_iac_type == "ansible" or sap_vm_provision_iac_type == "ansible_to_terraform"
+
+    - name: Tag provisioned resources
+      ansible.builtin.include_tasks:
+        file: ../../tasks/tag_resources.yml
+
+
+- name: Prepare cloud configuration
+  hosts: nwas_ascs_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: true
+  tasks:
+
+    - name: Create awscli config directory
+      ansible.builtin.file:
+        mode: "0755"
+        owner: root
+        path: /root/.aws
+        state: directory
+      when: sap_vm_provision_iac_platform == "aws_ec2_vs"
+
+    - name: Create awscli config
+      ansible.builtin.blockinfile:
+        backup: true
+        block: |
+          [default]
+          region = {{ sap_ha_pacemaker_cluster_aws_region }}
+        create: true
+        mode: "0600"
+        owner: root
+        path: /root/.aws/config
+      when: sap_vm_provision_iac_platform == "aws_ec2_vs"
+
+
+- name: Setup dummy cluster using ha_cluster role
+  hosts: nwas_ascs, nwas_ers
+  become: true
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: true
+  tasks:
+
+    - name: Load cluster variables
+      ansible.builtin.include_vars: "cluster.yml"
+
+    - name: Execute ha_cluster role
+      ansible.builtin.import_role:
+        name: "fedora.linux_system_roles.ha_cluster"

@@ -2,8 +2,8 @@
 # Platform-wide specific variables used by current scenario
 
 # SAP System  - Details
-sap_system_sid: "ENTER_STRING_VALUE_HERE"  # Example: AE1
-sap_system_nwas_ascs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
+sap_system_sid: "ENTER_STRING_VALUE_HERE"  # Example: "JE1"
+sap_system_nwas_scs_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "00"
 sap_system_nwas_ers_instance_nr: "ENTER_STRING_VALUE_HERE"  # Example: "10"
 
 # SAP System - dynamic assignment of variables
@@ -32,17 +32,18 @@ sap_netweaver_preconfigure_fail_if_not_enough_swap_space_configured: false
 
 
 # SWPM - main variables
-sap_swpm_templates_product_input_prefix: "sap_nwas_abap_distributed"
+sap_swpm_templates_product_input_prefix: "sap_nwas_java_distributed"
 sap_swpm_ansible_role_mode: default_templates
 sap_swpm_fqdn: "{{ ansible_domain }}"
 sap_swpm_update_etchosts: 'false'
 
 # SWPM - dynamic variables
 sap_swpm_sid: "{{ sap_system_sid }}"
-sap_swpm_ascs_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ascs[0] }}ha"
+sap_swpm_java_scs_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_scs[0] }}ha"
 sap_swpm_ers_instance_hostname: "{{ hostvars[inventory_hostname].groups.nwas_ers[0] }}ha"
-sap_swpm_ascs_instance_nr: "{{ sap_system_nwas_ascs_instance_nr }}"
+sap_swpm_java_scs_instance_nr: "{{ sap_system_nwas_scs_instance_nr }}"
 sap_swpm_ers_instance_nr: "{{ sap_system_nwas_ers_instance_nr }}"
+
 
 # SWPM - master password variables
 # Override any variable set in sap_swpm_inifile_dictionary
@@ -50,8 +51,8 @@ sap_swpm_master_password: "ENTER_STRING_VALUE_HERE"
 sap_swpm_ddic_000_password: "ENTER_STRING_VALUE_HERE"
 
 # SWPM - database password variables
-sap_swpm_db_schema_abap: "ENTER_STRING_VALUE_HERE"  # Example: "SAPHANADB"
-sap_swpm_db_schema_abap_password: "ENTER_STRING_VALUE_HERE"
+sap_swpm_db_schema_java: "ENTER_STRING_VALUE_HERE"  # Example: "SAPHANADB"
+sap_swpm_db_schema_java_password: "ENTER_STRING_VALUE_HERE"
 sap_swpm_db_sidadm_password: "ENTER_STRING_VALUE_HERE"
 sap_swpm_db_system_password: "ENTER_STRING_VALUE_HERE"
 sap_swpm_db_systemdb_password: "ENTER_STRING_VALUE_HERE"
@@ -62,10 +63,10 @@ sap_swpm_sapsys_gid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
 sap_swpm_sidadm_uid: "ENTER_STRING_VALUE_HERE"  # Example: "3001"
 
 # SAP Instance Profile details for sap_ha_pacemaker_cluster and installation detection
-sap_profile_name_ascs:
-  "{{ sap_system_sid | upper }}_ASCS{{ sap_swpm_ascs_instance_nr }}_{{ sap_swpm_ascs_instance_hostname }}"
-sap_profile_path_ascs:
-  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_ascs }}"
+sap_profile_name_scs:
+  "{{ sap_system_sid | upper }}_SCS{{ sap_swpm_java_scs_instance_nr }}_{{ sap_swpm_java_scs_instance_hostname }}"
+sap_profile_path_scs:
+  "/sapmnt/{{ sap_system_sid }}/profile/{{ sap_profile_name_scs }}"
 
 sap_profile_name_ers:
   "{{ sap_system_sid | upper }}_ERS{{ sap_swpm_ers_instance_nr }}_{{ sap_swpm_ers_instance_hostname }}"
@@ -75,8 +76,8 @@ sap_profile_path_ers:
 
 # Dictionary with SWPM details for each host
 sap_swpm_templates_install_dictionary:
-  sap_nwas_abap_distributed_nwas_ascs_ha:
-    sap_swpm_product_catalog_id: NW_ABAP_ASCS:NW750.HDB.ABAPHA
+  sap_nwas_java_distributed_nwas_scs_ha:
+    sap_swpm_product_catalog_id: NW_Java_SCS:NW750.HDB.HA
 
     sap_swpm_inifile_list:
       - swpm_installation_media
@@ -86,7 +87,7 @@ sap_swpm_templates_install_dictionary:
       - db_config_hana
       - db_connection_nw_hana
       - nw_config_other
-      - nw_config_central_services_abap
+      - nw_config_central_services_java
       - nw_config_primary_application_server_instance
       - nw_config_ports
       - nw_config_host_agent
@@ -96,8 +97,8 @@ sap_swpm_templates_install_dictionary:
       sap_swpm_install_saphostagent: 'true'
 
 
-  sap_nwas_abap_distributed_nwas_ers_ha:
-    sap_swpm_product_catalog_id: NW_ERS:NW750.HDB.ABAPHA
+  sap_nwas_java_distributed_nwas_ers_ha:
+    sap_swpm_product_catalog_id: NW_ERS:NW750.HDB.HA
 
     sap_swpm_inifile_list:
       - swpm_installation_media
@@ -111,10 +112,10 @@ sap_swpm_templates_install_dictionary:
 
 
 # DEBUG: Flag to disable SAPHanaSR-angi detection and use Classic
-# sap_ha_pacemaker_cluster_nwas_cs_ers_simple_mount: false
+# sap_ha_pacemaker_cluster_nwas_java_scs_ers_simple_mount: false
 
 # DEBUG: Flag for sap_ha_pacemaker_cluster troubleshooting
-# __sap_ha_pacemaker_cluster_no_log: false
+__sap_ha_pacemaker_cluster_no_log: false
 
 # DEBUG: Flag for sap_vm_provision troubleshooting
-# __sap_vm_provision_no_log: false
+__sap_vm_provision_no_log: false

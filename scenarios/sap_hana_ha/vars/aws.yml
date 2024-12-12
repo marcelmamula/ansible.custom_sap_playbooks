@@ -1,9 +1,6 @@
 ---
 # Platform and Scenario specific variables
 
-# Image from Image dictionary
-sap_vm_provision_aws_ec2_vs_host_os_image: "sles4sap-15-5-byos"
-
 # Custom override for HA IAM resources
 sap_vm_provision_aws_ha_iam_role: "HA-Role-Pacemaker-{{ sap_system_hana_db_sid }}"
 sap_vm_provision_aws_ha_iam_instance_profile: "HA-Role-Pacemaker-{{ sap_system_hana_db_sid }}-profile"
